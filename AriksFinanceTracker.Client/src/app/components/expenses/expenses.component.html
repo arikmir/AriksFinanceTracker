@@ -1,0 +1,130 @@
+<div class="expenses-container">
+  <mat-toolbar color="primary" class="mat-elevation-z4">
+    <mat-icon class="header-icon">receipt</mat-icon>
+    <h1 class="mat-h1">Expense Tracking</h1>
+    <span class="spacer"></span>
+    <button mat-fab color="accent" class="add-fab">
+      <mat-icon>add</mat-icon>
+    </button>
+  </mat-toolbar>
+  
+  <div class="content">
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+      <mat-card class="stat-card mat-elevation-z4">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>today</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3 class="mat-h3">Today's Expenses</h3>
+            <div class="amount">$127.50</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="stat-card mat-elevation-z4">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>date_range</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3 class="mat-h3">This Week</h3>
+            <div class="amount">$845.30</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="stat-card mat-elevation-z4">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>calendar_month</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3 class="mat-h3">This Month</h3>
+            <div class="amount">$3,420.75</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Filter Options -->
+    <mat-card class="filter-card mat-elevation-z2">
+      <mat-card-content>
+        <div class="filter-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-select>
+              <mat-option value="all">All Categories</mat-option>
+              <mat-option value="groceries">Groceries</mat-option>
+              <mat-option value="transport">Transport</mat-option>
+              <mat-option value="utilities">Utilities</mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Date Range</mat-label>
+            <input matInput [matDatepicker]="picker" placeholder="Choose a date">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+          
+          <button mat-raised-button color="primary">
+            <mat-icon>search</mat-icon>
+            Filter
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Expense List -->
+    <mat-card class="expense-list-card mat-elevation-z4">
+      <mat-card-header>
+        <div mat-card-avatar class="expense-avatar">
+          <mat-icon>receipt_long</mat-icon>
+        </div>
+        <mat-card-title class="mat-h2">Recent Expenses</mat-card-title>
+        <mat-card-subtitle>Track your spending patterns</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="mat-body-1">Comprehensive expense tracking features are coming soon!</p>
+        <p class="mat-body-2">In the meantime, you can view your expense summary in the dashboard.</p>
+        
+        <div class="feature-preview">
+          <mat-list>
+            <mat-list-item>
+              <mat-icon matListIcon>check_circle</mat-icon>
+              <div matLine>Add and categorize expenses</div>
+              <div matLine class="secondary">Coming Soon</div>
+            </mat-list-item>
+            <mat-list-item>
+              <mat-icon matListIcon>analytics</mat-icon>
+              <div matLine>Expense analytics and trends</div>
+              <div matLine class="secondary">Coming Soon</div>
+            </mat-list-item>
+            <mat-list-item>
+              <mat-icon matListIcon>camera_alt</mat-icon>
+              <div matLine>Receipt scanning and OCR</div>
+              <div matLine class="secondary">Coming Soon</div>
+            </mat-list-item>
+            <mat-list-item>
+              <mat-icon matListIcon>cloud_sync</mat-icon>
+              <div matLine>Bank account synchronization</div>
+              <div matLine class="secondary">Coming Soon</div>
+            </mat-list-item>
+          </mat-list>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button color="primary">
+          <mat-icon>dashboard</mat-icon>
+          View Dashboard
+        </button>
+        <button mat-raised-button color="accent" disabled>
+          <mat-icon>add</mat-icon>
+          Add Expense
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

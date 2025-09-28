@@ -1,0 +1,83 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.swp
+*~
+*.tmp
+*.cache
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.dotCover
+*.ncrunch*
+*.suo
+*.cache
+Thumbs.db
+*.DS_Store
+*.userprefs
+*.pidb
+*.booproj
+*.swp
+*~
+*.tmp
+*.cache
+*.log
+
+# Entity Framework
+*.Designer.cs
+migrations/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Angular
+dist/
+.angular/
+.sass-cache/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Package files
+*.tgz
+*.tar.gz

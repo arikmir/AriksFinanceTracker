@@ -1,0 +1,202 @@
+<div class="dashboard-container">
+  <mat-toolbar color="primary" class="dashboard-header mat-elevation-z4">
+    <mat-icon class="header-icon">dashboard</mat-icon>
+    <h1 class="mat-h1">Arik's Financial Dashboard</h1>
+    <span class="spacer"></span>
+    <mat-chip-set>
+      <mat-chip>
+        <mat-icon matChipAvatar>today</mat-icon>
+        September 2025
+      </mat-chip>
+    </mat-chip-set>
+  </mat-toolbar>
+
+  <div class="dashboard-content">
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button mat-fab color="primary" class="add-expense-fab" title="Add Expense">
+        <mat-icon>add</mat-icon>
+      </button>
+      <button mat-stroked-button color="accent" class="action-btn">
+        <mat-icon>receipt</mat-icon>
+        Add Expense
+      </button>
+      <button mat-stroked-button color="accent" class="action-btn">
+        <mat-icon>attach_money</mat-icon>
+        Add Income
+      </button>
+      <button mat-stroked-button class="action-btn">
+        <mat-icon>assessment</mat-icon>
+        View Report
+      </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <mat-card class="summary-card income-card mat-elevation-z6" appearance="raised">
+        <mat-card-header>
+          <div mat-card-avatar class="card-avatar income-avatar">
+            <mat-icon>trending_up</mat-icon>
+          </div>
+          <mat-card-title class="mat-h3">Monthly Income</mat-card-title>
+          <mat-card-subtitle>This month's earnings</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount-display">
+            <span class="currency">$</span>
+            <span class="amount">{{dashboardData.totalIncome | number:'1.0-0'}}</span>
+          </div>
+          <mat-progress-bar mode="determinate" value="85" color="accent"></mat-progress-bar>
+          <small class="progress-label">85% of monthly target</small>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card expense-card mat-elevation-z6" appearance="raised">
+        <mat-card-header>
+          <div mat-card-avatar class="card-avatar expense-avatar">
+            <mat-icon>trending_down</mat-icon>
+          </div>
+          <mat-card-title class="mat-h3">Total Expenses</mat-card-title>
+          <mat-card-subtitle>This month's spending</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount-display">
+            <span class="currency">$</span>
+            <span class="amount">{{dashboardData.totalExpenses | number:'1.0-0'}}</span>
+          </div>
+          <mat-progress-bar mode="determinate" value="73" color="warn"></mat-progress-bar>
+          <small class="progress-label">73% of budget used</small>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card savings-card mat-elevation-z6" appearance="raised">
+        <mat-card-header>
+          <div mat-card-avatar class="card-avatar savings-avatar">
+            <mat-icon>savings</mat-icon>
+          </div>
+          <mat-card-title class="mat-h3">Net Savings</mat-card-title>
+          <mat-card-subtitle>Current month balance</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount-display">
+            <span class="currency">$</span>
+            <span class="amount" [style.color]="getSavingsColor()">{{dashboardData.netSavings | number:'1.0-0'}}</span>
+          </div>
+          <div class="savings-rate">
+            <mat-chip [style.background-color]="getSavingsColor()" class="rate-chip">
+              {{dashboardData.savingsRate | number:'1.1-1'}}% savings rate
+            </mat-chip>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Budget Categories -->
+    <mat-card class="budget-card mat-elevation-z4">
+      <mat-card-header>
+        <div mat-card-avatar class="budget-avatar">
+          <mat-icon>account_balance_wallet</mat-icon>
+        </div>
+        <mat-card-title class="mat-h2">Monthly Budget Breakdown</mat-card-title>
+        <mat-card-subtitle>Track your spending by category</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="budget-grid">
+          <mat-card *ngFor="let category of budgetCategories" class="budget-item mat-elevation-z2">
+            <mat-card-content>
+              <div class="budget-header">
+                <mat-icon class="category-icon">{{category.icon}}</mat-icon>
+                <div class="category-info">
+                  <h4 class="mat-h4">{{category.name}}</h4>
+                  <span class="category-amount">${{category.amount}}</span>
+                </div>
+              </div>
+              <mat-progress-bar 
+                mode="determinate" 
+                [value]="(category.amount / 4000) * 100" 
+                color="primary">
+              </mat-progress-bar>
+              <small class="budget-progress">{{(category.amount / 4000) * 100 | number:'1.0-0'}}% of budget</small>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button color="primary">
+          <mat-icon>edit</mat-icon>
+          Manage Budget
+        </button>
+        <button mat-raised-button color="accent">
+          <mat-icon>add</mat-icon>
+          Add Category
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Housing Transition Alert -->
+    <mat-card class="transition-alert mat-elevation-z8">
+      <mat-card-header>
+        <div mat-card-avatar class="transition-avatar">
+          <mat-icon>home</mat-icon>
+        </div>
+        <mat-card-title class="mat-h2">
+          Housing Transition - February 2025
+        </mat-card-title>
+        <mat-card-subtitle>Your financial milestone is approaching!</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="mat-body-1">Your property construction completes in February 2025!</p>
+        <div class="savings-preview">
+          <mat-card class="preview-item current mat-elevation-z2">
+            <mat-card-content>
+              <div class="preview-header">
+                <mat-icon>today</mat-icon>
+                <strong>Current Monthly Cost</strong>
+              </div>
+              <div class="preview-calculation">
+                Mortgage ($1,746) + Rent ($2,340) = <strong>$4,086</strong>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          
+          <mat-icon class="arrow-icon">arrow_downward</mat-icon>
+          
+          <mat-card class="preview-item future mat-elevation-z2">
+            <mat-card-content>
+              <div class="preview-header">
+                <mat-icon>event</mat-icon>
+                <strong>After February 2025</strong>
+              </div>
+              <div class="preview-calculation">
+                Mortgage only = <strong>$1,746</strong>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          
+          <mat-card class="preview-item savings mat-elevation-z4">
+            <mat-card-content>
+              <div class="savings-highlight">
+                <mat-icon>trending_up</mat-icon>
+                <div>
+                  <strong class="mat-h3">Monthly Savings Increase</strong>
+                  <div class="savings-amount">$2,340</div>
+                </div>
+                <mat-icon class="celebration">celebration</mat-icon>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button>
+          <mat-icon>schedule</mat-icon>
+          Set Reminder
+        </button>
+        <button mat-raised-button color="primary">
+          <mat-icon>calculate</mat-icon>
+          Plan Savings
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

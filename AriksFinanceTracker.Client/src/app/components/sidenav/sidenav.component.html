@@ -1,0 +1,23 @@
+<div class="sidenav-content">
+  <div class="logo">
+    <mat-icon>account_balance</mat-icon>
+    <h2>Arik's Tracker</h2>
+  </div>
+  
+  <mat-nav-list>
+    <mat-list-item *ngFor="let item of menuItems" 
+                   [routerLink]="item.route"
+                   [class.active]="isActive(item.route)">
+      <mat-icon matListIcon>{{item.icon}}</mat-icon>
+      <span matLine>{{item.label}}</span>
+    </mat-list-item>
+  </mat-nav-list>
+  
+  <div class="user-info">
+    <mat-icon>account_circle</mat-icon>
+    <div>
+      <p>Arik</p>
+      <small>Brisbane • $8k/month</small>
+    </div>
+  </div>
+</div>

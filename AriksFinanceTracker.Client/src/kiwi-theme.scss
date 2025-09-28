@@ -1,0 +1,134 @@
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Define the Kiwi color palette
+$kiwi-dark-teal: (
+  50: #e0f2f0,
+  100: #b3ded9,
+  200: #80c8c0,
+  300: #4db2a6,
+  400: #26a192,
+  500: #028174,
+  600: #02796c,
+  700: #016e61,
+  800: #016457,
+  900: #015144,
+  A100: #7ffff2,
+  A200: #4cfff0,
+  A400: #19ffed,
+  A700: #00ffe9,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: white,
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: rgba(black, 0.87),
+    A700: rgba(black, 0.87),
+  )
+);
+
+$kiwi-medium-green: (
+  50: #e1f8f3,
+  100: #b5eee0,
+  200: #84e2cc,
+  300: #53d6b7,
+  400: #2ecda7,
+  500: #0ab68b,
+  600: #09af83,
+  700: #07a578,
+  800: #059c6e,
+  900: #038b5b,
+  A100: #b8ffed,
+  A200: #85ffdb,
+  A400: #52ffc9,
+  A700: #39ffc2,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: rgba(black, 0.87),
+    A700: rgba(black, 0.87),
+  )
+);
+
+$kiwi-light-green: (
+  50: #f1fdf4,
+  100: #dcf9e4,
+  200: #c5f4d3,
+  300: #adefc1,
+  400: #9beab4,
+  500: #92de8b,
+  600: #8ada83,
+  700: #7fd578,
+  800: #75d16e,
+  900: #63c95b,
+  A100: #ffffff,
+  A200: #f4fff6,
+  A400: #c1ffc9,
+  A700: #a8ffb3,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: rgba(black, 0.87),
+    600: rgba(black, 0.87),
+    700: rgba(black, 0.87),
+    800: rgba(black, 0.87),
+    900: rgba(black, 0.87),
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: rgba(black, 0.87),
+    A700: rgba(black, 0.87),
+  )
+);
+
+// Create the theme object
+$kiwi-primary: mat.define-palette($kiwi-dark-teal, 500);
+$kiwi-accent: mat.define-palette($kiwi-medium-green, 500);
+$kiwi-warn: mat.define-palette(mat.$red-palette);
+
+// Create the theme
+$kiwi-theme: mat.define-light-theme((
+  color: (
+    primary: $kiwi-primary,
+    accent: $kiwi-accent,
+    warn: $kiwi-warn,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0,
+));
+
+// Include theme styles for all components
+@include mat.all-component-themes($kiwi-theme);
+
+// Custom CSS variables for consistent color usage
+:root {
+  --kiwi-dark-teal: #028174;
+  --kiwi-medium-green: #0AB68B;
+  --kiwi-light-green: #92DE8B;
+  --kiwi-cream: #FFE3B3;
+  --kiwi-success: #4CAF50;
+  --kiwi-warning: #FF9800;
+  --kiwi-error: #F44336;
+}
