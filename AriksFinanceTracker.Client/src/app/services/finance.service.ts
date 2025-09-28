@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Expense } from '../models/expense.model';
+import { Expense, ExpenseAnalytics, DailyExpense, CategorySummary } from '../models/expense.model';
 import { Income } from '../models/income.model';
 import { DashboardData } from '../models/dashboard.model';
 
@@ -60,5 +60,29 @@ export class FinanceService {
   getYearlyDashboard(year?: number): Observable<any> {
     const yearParam = year ? `?year=${year}` : '';
     return this.http.get<any>(`${this.apiUrl}/dashboard/yearly${yearParam}`);
+  }
+
+  getDailyExpenseAnalytics(startDate?: Date, endDate?: Date): Observable<DailyExpense[]> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate.toISOString());
+    if (endDate) params = params.set('endDate', endDate.toISOString());
+    
+    return this.http.get<DailyExpense[]>(`${this.apiUrl}/expense/analytics/daily`, { params });
+  }
+
+  getWeeklyExpenseAnalytics(): Observable<ExpenseAnalytics> {
+    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/weekly`);
+  }
+
+  getMonthlyExpenseAnalytics(): Observable<ExpenseAnalytics> {
+    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/monthly`);
+  }
+
+  getCategorySummary(startDate?: Date, endDate?: Date): Observable<CategorySummary[]> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate.toISOString());
+    if (endDate) params = params.set('endDate', endDate.toISOString());
+    
+    return this.http.get<CategorySummary[]>(`${this.apiUrl}/expense/categories/summary`, { params });
   }
 }
