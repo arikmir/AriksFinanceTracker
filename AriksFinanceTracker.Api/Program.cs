@@ -42,13 +42,34 @@ public class FinanceContext : DbContext
     public DbSet<Income> Incomes { get; set; }
 }
 
+public enum ExpenseCategory
+{
+    FoodAndDrinks,
+    Groceries,
+    Shopping,
+    Transport,
+    Entertainment,
+    Utilities,
+    HealthAndFitness,
+    Home,
+    Savings,
+    Repayment,
+    Miscellaneous
+}
+
 public class Expense
 {
     public int Id { get; set; }
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
-    public string Category { get; set; }
+    public ExpenseCategory Category { get; set; }
     public string Description { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Location { get; set; }
+    public string? Tags { get; set; }
+    public bool IsRecurring { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class Income
@@ -57,4 +78,31 @@ public class Income
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
     public string Source { get; set; }
+}
+
+public class ExpenseAnalyticsDto
+{
+    public decimal TotalAmount { get; set; }
+    public int TransactionCount { get; set; }
+    public decimal AverageAmount { get; set; }
+    public Dictionary<ExpenseCategory, decimal> CategoryBreakdown { get; set; } = new();
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+}
+
+public class DailyExpenseDto
+{
+    public DateTime Date { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int TransactionCount { get; set; }
+    public List<Expense> Expenses { get; set; } = new();
+}
+
+public class CategorySummaryDto
+{
+    public ExpenseCategory Category { get; set; }
+    public string CategoryName { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int TransactionCount { get; set; }
+    public decimal Percentage { get; set; }
 }
