@@ -1,7 +1,432 @@
 .reports-container {
+  .spacer {
+    flex: 1 1 auto;
+  }
+
   .content {
     padding: 24px;
     background: #f5f5f5;
     min-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  // Loading State
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+
+    p {
+      color: #666;
+      font-size: 1.1em;
+    }
+  }
+
+  // Error Card
+  .error-card {
+    background: #ffebee;
+    border-left: 4px solid #f44336;
+
+    .error-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      mat-icon {
+        font-size: 24px;
+      }
+
+      span {
+        flex: 1;
+        color: #d32f2f;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Summary Card
+  .summary-card {
+    background: linear-gradient(135deg, #e8f5e8 0%, #f3e5f5 100%);
+    border-left: 6px solid #4caf50;
+
+    .health-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+
+      .health-metric {
+        text-align: center;
+
+        .metric-value {
+          font-size: 2em;
+          font-weight: 700;
+          margin-bottom: 8px;
+
+          &.success { color: #4caf50; }
+          &.primary { color: #2196f3; }
+          &.accent { color: #ff9800; }
+          &.warn { color: #f44336; }
+          &.savings-rate { font-size: 2.5em; }
+        }
+
+        .metric-label {
+          font-size: 0.9em;
+          color: #666;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+
+    .achievements-section {
+      h4 {
+        margin: 0 0 12px 0;
+        color: #2e7d32;
+      }
+
+      mat-chip-set {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+    }
+  }
+
+  // Chart Cards
+  .chart-card {
+    .chart-container {
+      margin: 16px 0;
+
+      .savings-trend-chart {
+        display: flex;
+        align-items: end;
+        gap: 12px;
+        height: 200px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 12px;
+
+        .trend-bar {
+          flex: 1;
+          min-height: 20px;
+          border-radius: 4px 4px 0 0;
+          position: relative;
+          transition: all 0.3s ease;
+
+          &:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+          }
+
+          .bar-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #333;
+          }
+        }
+      }
+
+      .chart-labels {
+        display: flex;
+        gap: 12px;
+        padding: 0 20px;
+
+        .label {
+          flex: 1;
+          text-align: center;
+          font-size: 0.9em;
+          color: #666;
+        }
+      }
+    }
+
+    .trend-insights {
+      margin-top: 16px;
+
+      .insight {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+
+        mat-icon {
+          font-size: 20px;
+        }
+
+        span {
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  // Category Analysis
+  .category-analysis {
+    .category-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .category-info {
+        flex: 1;
+        min-width: 200px;
+
+        .category-name {
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+
+        .category-amounts {
+          font-size: 0.9em;
+
+          .spent {
+            font-weight: 600;
+            color: #333;
+          }
+
+          .budget {
+            color: #666;
+          }
+        }
+      }
+
+      .category-visual {
+        flex: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .spending-bar {
+          flex: 1;
+          height: 8px;
+          background: #e0e0e0;
+          border-radius: 4px;
+          overflow: hidden;
+
+          .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+          }
+        }
+
+        .percentage {
+          min-width: 50px;
+          text-align: right;
+          font-weight: 600;
+          font-size: 0.9em;
+        }
+      }
+    }
+  }
+
+  // Goals Progress
+  .goals-progress {
+    .goal-progress-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .goal-info {
+        flex: 1;
+        min-width: 200px;
+
+        .goal-name {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+          margin-bottom: 4px;
+
+          .achievement-star {
+            font-size: 18px;
+          }
+        }
+
+        .goal-amounts {
+          font-size: 0.9em;
+
+          .actual {
+            font-weight: 600;
+            color: #4caf50;
+          }
+
+          .target {
+            color: #666;
+          }
+        }
+      }
+
+      .goal-progress-visual {
+        flex: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        mat-progress-bar {
+          flex: 1;
+          height: 8px;
+          border-radius: 4px;
+        }
+
+        .progress-percentage {
+          min-width: 50px;
+          text-align: right;
+          font-weight: 600;
+          font-size: 0.9em;
+        }
+      }
+    }
+  }
+
+  // Trends Chart
+  .trends-chart {
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 20px;
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .legend-color {
+          width: 16px;
+          height: 16px;
+          border-radius: 2px;
+
+          &.income { background: #4caf50; }
+          &.expenses { background: #f44336; }
+          &.savings { background: #2196f3; }
+        }
+      }
+    }
+
+    .trends-bars {
+      display: flex;
+      justify-content: space-around;
+      align-items: end;
+      height: 220px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+
+      .trend-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+
+        .trend-month {
+          font-size: 0.8em;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .trend-bars-stack {
+          display: flex;
+          gap: 4px;
+          align-items: end;
+
+          .trend-bar {
+            width: 20px;
+            border-radius: 2px 2px 0 0;
+            min-height: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+
+            &:hover {
+              opacity: 0.8;
+              transform: translateY(-2px);
+            }
+
+            &.income { background: #4caf50; }
+            &.expenses { background: #f44336; }
+            &.savings { background: #2196f3; }
+          }
+        }
+      }
+    }
+  }
+
+  // Recommendations
+  .recommendations-card {
+    .recommendations-list {
+      margin-bottom: 24px;
+
+      .recommendation-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        mat-icon {
+          margin-top: 2px;
+        }
+
+        span {
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .financial-insights {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+
+      .insight-card {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+
+        h4 {
+          margin: 0 0 8px 0;
+          color: #1976d2;
+        }
+
+        p {
+          margin: 4px 0;
+          line-height: 1.4;
+
+          &.period-description {
+            color: #666;
+            font-style: italic;
+          }
+        }
+      }
+    }
   }
 }

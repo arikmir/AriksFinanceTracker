@@ -13,6 +13,7 @@ import {
   DailyExpense,
   CategorySummary 
 } from '../../models/expense.model';
+import { BudgetStatus, SpendingCheck, CheckSpendingRequest } from '../../models/budget.model';
 
 @Component({
   selector: 'app-expenses',
@@ -29,9 +30,15 @@ export class ExpensesComponent implements OnInit {
   showAddForm = false;
   editingExpense: Expense | null = null;
   
+  // Budget guidance properties
+  budgetStatus?: BudgetStatus;
+  spendingCheck?: SpendingCheck;
+  showBudgetGuidance = false;
+  
   ExpenseCategory = ExpenseCategory;
   ExpenseCategoryLabels = ExpenseCategoryLabels;
   ExpenseCategoryIcons = ExpenseCategoryIcons;
+  Math = Math;
   
   categories = Object.values(ExpenseCategory).filter(value => typeof value === 'number') as ExpenseCategory[];
   paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Digital Wallet'];
@@ -61,6 +68,8 @@ export class ExpensesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadBudgetStatus();
+    this.setupBudgetGuidance();
   }
 
   loadData(): void {
@@ -198,5 +207,93 @@ export class ExpensesComponent implements OnInit {
     return this.expenses
       .filter(e => new Date(e.date).toDateString() === today)
       .length;
+  }
+
+  // Budget guidance methods
+  loadBudgetStatus(): void {
+    this.financeService.getBudgetStatus().subscribe({
+      next: (status) => {
+        this.budgetStatus = status;
+      },
+      error: (error) => {
+        console.error('Error loading budget status:', error);
+      }
+    });
+  }
+
+  setupBudgetGuidance(): void {
+    // Watch for changes in amount and category to provide real-time guidance
+    this.expenseForm.get('amount')?.valueChanges.subscribe(() => {
+      this.updateSpendingGuidance();
+    });
+    
+    this.expenseForm.get('category')?.valueChanges.subscribe(() => {
+      this.updateSpendingGuidance();
+    });
+  }
+
+  updateSpendingGuidance(): void {
+    const amount = this.expenseForm.get('amount')?.value;
+    const category = this.expenseForm.get('category')?.value;
+    
+    if (amount > 0 && category !== null && category !== undefined) {
+      const request: CheckSpendingRequest = {
+        category: category,
+        amount: parseFloat(amount)
+      };
+      
+      this.financeService.checkSpending(request).subscribe({
+        next: (check) => {
+          this.spendingCheck = check;
+          this.showBudgetGuidance = true;
+        },
+        error: (error) => {
+          console.error('Error checking spending:', error);
+          this.showBudgetGuidance = false;
+        }
+      });
+    } else {
+      this.showBudgetGuidance = false;
+    }
+  }
+
+  getCategoryBudgetInfo(category: ExpenseCategory) {
+    if (!this.budgetStatus) return null;
+    return this.budgetStatus.categoryBudgets.find(cb => cb.category === category);
+  }
+
+  getAlertLevelColor(alertLevel?: number): string {
+    if (!alertLevel) return 'primary';
+    switch (alertLevel) {
+      case 1: return 'primary'; // Info
+      case 2: return 'accent';  // Warning
+      case 3: return 'warn';    // Critical
+      case 4: return 'warn';    // Exceeded
+      default: return 'primary';
+    }
+  }
+
+  getAlertLevelIcon(alertLevel?: number): string {
+    if (!alertLevel) return 'info';
+    switch (alertLevel) {
+      case 1: return 'info';
+      case 2: return 'warning';
+      case 3: return 'error';
+      case 4: return 'block';
+      default: return 'info';
+    }
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
+  formatPercentage(value: number): string {
+    return `${value.toFixed(1)}%`;
   }
 }

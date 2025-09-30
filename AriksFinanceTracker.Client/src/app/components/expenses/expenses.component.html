@@ -128,6 +128,105 @@
             This is a recurring expense
           </mat-checkbox>
 
+          <!-- Budget Guidance Section -->
+          <div class="budget-guidance" *ngIf="showBudgetGuidance && spendingCheck">
+            <mat-card class="guidance-card" [class]="'guidance-' + getAlertLevelColor(spendingCheck.alertLevel)">
+              <mat-card-content>
+                <div class="guidance-header">
+                  <mat-icon [color]="getAlertLevelColor(spendingCheck.alertLevel)">
+                    {{ getAlertLevelIcon(spendingCheck.alertLevel) }}
+                  </mat-icon>
+                  <h4>Budget Guidance</h4>
+                </div>
+                
+                <div class="guidance-content">
+                  <p class="guidance-message">{{ spendingCheck.message }}</p>
+                  <p class="encouragement">{{ spendingCheck.encouragement }}</p>
+                  
+                  <div class="budget-details" *ngIf="getCategoryBudgetInfo(expenseForm.get('category')?.value) as categoryBudget">
+                    <div class="budget-summary">
+                      <div class="budget-row">
+                        <span>Category Budget:</span>
+                        <span class="budget-amount">{{ formatCurrency(categoryBudget.limit) }}</span>
+                      </div>
+                      <div class="budget-row">
+                        <span>Currently Spent:</span>
+                        <span class="spent-amount">{{ formatCurrency(categoryBudget.spent) }}</span>
+                      </div>
+                      <div class="budget-row">
+                        <span>After This Expense:</span>
+                        <span class="new-total">{{ formatCurrency(categoryBudget.spent + (expenseForm.get('amount')?.value || 0)) }}</span>
+                      </div>
+                      <div class="budget-row">
+                        <span>Remaining Budget:</span>
+                        <span class="remaining" [class]="spendingCheck.remainingBudget < 0 ? 'negative' : 'positive'">
+                          {{ formatCurrency(spendingCheck.remainingBudget) }}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div class="budget-progress">
+                      <div class="progress-label">
+                        <span>Budget Usage: {{ formatPercentage(spendingCheck.newPercentageUsed) }}</span>
+                      </div>
+                      <mat-progress-bar 
+                        mode="determinate" 
+                        [value]="Math.min(100, spendingCheck.newPercentageUsed)"
+                        [color]="getAlertLevelColor(spendingCheck.alertLevel)">
+                      </mat-progress-bar>
+                    </div>
+
+                    <div class="daily-guidance" *ngIf="categoryBudget.dailyRecommendation > 0">
+                      <mat-icon>schedule</mat-icon>
+                      <span>Recommended daily spending: {{ formatCurrency(categoryBudget.dailyRecommendation) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Current Category Budget Overview -->
+          <div class="current-category-budget" *ngIf="expenseForm.get('category')?.value !== null && getCategoryBudgetInfo(expenseForm.get('category')?.value) as categoryBudget">
+            <mat-card class="category-overview">
+              <mat-card-content>
+                <div class="category-header">
+                  <mat-icon>{{ getCategoryIcon(expenseForm.get('category')?.value) }}</mat-icon>
+                  <h4>{{ getCategoryLabel(expenseForm.get('category')?.value) }} Budget</h4>
+                  <span class="status-badge" [class]="'status-' + categoryBudget.statusColor">
+                    {{ categoryBudget.status }}
+                  </span>
+                </div>
+                
+                <div class="category-stats">
+                  <div class="stat">
+                    <span class="label">Spent</span>
+                    <span class="value">{{ formatCurrency(categoryBudget.spent) }}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Budget</span>
+                    <span class="value">{{ formatCurrency(categoryBudget.limit) }}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Remaining</span>
+                    <span class="value" [class]="categoryBudget.remaining < 0 ? 'negative' : 'positive'">
+                      {{ formatCurrency(categoryBudget.remaining) }}
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="category-progress">
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="categoryBudget.percentageUsed"
+                    [color]="categoryBudget.statusColor === 'green' ? 'primary' : categoryBudget.statusColor === 'yellow' ? 'accent' : 'warn'">
+                  </mat-progress-bar>
+                  <span class="progress-text">{{ formatPercentage(categoryBudget.percentageUsed) }} used</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
           <div class="form-actions">
             <button mat-button type="button" (click)="resetForm()">
               Cancel

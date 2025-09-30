@@ -433,4 +433,219 @@
       }
     }
   }
+
+  // Budget Guidance Styles
+  .budget-guidance {
+    margin: 24px 0;
+    
+    .guidance-card {
+      border-radius: 12px;
+      
+      &.guidance-primary {
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        border-left: 4px solid #2196f3;
+      }
+      
+      &.guidance-accent {
+        background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+        border-left: 4px solid #ff9800;
+      }
+      
+      &.guidance-warn {
+        background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+        border-left: 4px solid #f44336;
+      }
+      
+      .guidance-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        
+        h4 {
+          margin: 0;
+          font-weight: 600;
+        }
+      }
+      
+      .guidance-content {
+        .guidance-message {
+          font-size: 1.1em;
+          font-weight: 500;
+          margin-bottom: 8px;
+          color: #333;
+        }
+        
+        .encouragement {
+          font-style: italic;
+          color: #666;
+          margin-bottom: 16px;
+        }
+        
+        .budget-details {
+          .budget-summary {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            
+            .budget-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              
+              &:last-child {
+                margin-bottom: 0;
+                font-weight: 600;
+                border-top: 1px solid #e0e0e0;
+                padding-top: 8px;
+              }
+              
+              .negative {
+                color: #f44336;
+                font-weight: 600;
+              }
+              
+              .positive {
+                color: #4caf50;
+                font-weight: 600;
+              }
+            }
+          }
+          
+          .budget-progress {
+            margin-bottom: 12px;
+            
+            .progress-label {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              font-size: 0.9em;
+              color: #666;
+            }
+            
+            mat-progress-bar {
+              height: 8px;
+              border-radius: 4px;
+            }
+          }
+          
+          .daily-guidance {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #666;
+            
+            mat-icon {
+              font-size: 16px;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .current-category-budget {
+    margin: 16px 0;
+    
+    .category-overview {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      
+      .category-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        
+        h4 {
+          flex: 1;
+          margin: 0;
+          font-weight: 600;
+        }
+        
+        .status-badge {
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 0.8em;
+          font-weight: 500;
+          text-transform: uppercase;
+          
+          &.status-green {
+            background: #e8f5e8;
+            color: #2e7d32;
+          }
+          
+          &.status-blue {
+            background: #e3f2fd;
+            color: #1976d2;
+          }
+          
+          &.status-yellow {
+            background: #fff8e1;
+            color: #f57c00;
+          }
+          
+          &.status-orange {
+            background: #fce4ec;
+            color: #c2185b;
+          }
+        }
+      }
+      
+      .category-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+        
+        .stat {
+          text-align: center;
+          
+          .label {
+            display: block;
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+          }
+          
+          .value {
+            display: block;
+            font-size: 1.2em;
+            font-weight: 600;
+            
+            &.negative {
+              color: #f44336;
+            }
+            
+            &.positive {
+              color: #4caf50;
+            }
+          }
+        }
+      }
+      
+      .category-progress {
+        .progress-text {
+          display: block;
+          text-align: center;
+          margin-top: 8px;
+          font-size: 0.9em;
+          color: #666;
+        }
+        
+        mat-progress-bar {
+          height: 6px;
+          border-radius: 3px;
+        }
+      }
+    }
+  }
 }

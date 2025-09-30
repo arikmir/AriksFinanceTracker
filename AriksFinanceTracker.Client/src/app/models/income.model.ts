@@ -3,4 +3,5 @@ export interface Income {
   date: Date;
   amount: number;
   source: string;
+  notes?: string;
 }

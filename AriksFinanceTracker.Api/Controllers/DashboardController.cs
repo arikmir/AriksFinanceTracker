@@ -13,10 +13,10 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<object>> GetDashboard()
+    public async Task<ActionResult<object>> GetDashboard(int? month = null, int? year = null)
     {
-        var currentMonth = DateTime.Now.Month;
-        var currentYear = DateTime.Now.Year;
+        var currentMonth = month ?? DateTime.Now.Month;
+        var currentYear = year ?? DateTime.Now.Year;
         
         var totalIncome = await _context.Incomes
             .Where(i => i.Date.Month == currentMonth && i.Date.Year == currentYear)

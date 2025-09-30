@@ -111,12 +111,14 @@ public class ExpenseController : ControllerBase
         var start = startDate ?? DateTime.Today.AddDays(-30);
         var end = endDate ?? DateTime.Today;
         
-        var totalAmount = await _context.Expenses
+        // Get all expenses and calculate on client side for SQLite compatibility
+        var expenses = await _context.Expenses
             .Where(e => e.Date >= start && e.Date <= end)
-            .SumAsync(e => e.Amount);
+            .ToListAsync();
             
-        var categorySummary = await _context.Expenses
-            .Where(e => e.Date >= start && e.Date <= end)
+        var totalAmount = expenses.Sum(e => e.Amount);
+            
+        var categorySummary = expenses
             .GroupBy(e => e.Category)
             .Select(g => new CategorySummaryDto
             {
@@ -127,7 +129,7 @@ public class ExpenseController : ControllerBase
                 Percentage = totalAmount > 0 ? (g.Sum(e => e.Amount) / totalAmount) * 100 : 0
             })
             .OrderByDescending(c => c.TotalAmount)
-            .ToListAsync();
+            .ToList();
             
         return Ok(categorySummary);
     }

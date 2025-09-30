@@ -4,12 +4,13 @@ import { Observable } from 'rxjs';
 import { Expense, ExpenseAnalytics, DailyExpense, CategorySummary } from '../models/expense.model';
 import { Income } from '../models/income.model';
 import { DashboardData } from '../models/dashboard.model';
+import { BudgetStatus, FinancialHealth, SpendingCheck, CheckSpendingRequest, SavingsCelebration } from '../models/budget.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FinanceService {
-  private apiUrl = 'http://localhost:5001/api';
+  private apiUrl = 'http://localhost:5291/api';
 
   constructor(private http: HttpClient) { }
 
@@ -53,8 +54,12 @@ export class FinanceService {
     return this.http.delete<void>(`${this.apiUrl}/income/${id}`);
   }
 
-  getDashboardData(): Observable<DashboardData> {
-    return this.http.get<DashboardData>(`${this.apiUrl}/dashboard`);
+  getDashboardData(month?: number, year?: number): Observable<DashboardData> {
+    let params = new HttpParams();
+    if (month !== undefined) params = params.set('month', month.toString());
+    if (year !== undefined) params = params.set('year', year.toString());
+    
+    return this.http.get<DashboardData>(`${this.apiUrl}/dashboard`, { params });
   }
 
   getYearlyDashboard(year?: number): Observable<any> {
@@ -84,5 +89,30 @@ export class FinanceService {
     if (endDate) params = params.set('endDate', endDate.toISOString());
     
     return this.http.get<CategorySummary[]>(`${this.apiUrl}/expense/categories/summary`, { params });
+  }
+
+  // Budget API methods
+  initializeBudget(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/budget/initialize`, {});
+  }
+
+  getBudgetStatus(): Observable<BudgetStatus> {
+    return this.http.get<BudgetStatus>(`${this.apiUrl}/budget/status`);
+  }
+
+  checkSpending(request: CheckSpendingRequest): Observable<SpendingCheck> {
+    return this.http.post<SpendingCheck>(`${this.apiUrl}/budget/check-spending`, request);
+  }
+
+  getFinancialHealth(): Observable<FinancialHealth> {
+    return this.http.get<FinancialHealth>(`${this.apiUrl}/budget/financial-health`);
+  }
+
+  getSavingsCelebration(): Observable<SavingsCelebration> {
+    return this.http.get<SavingsCelebration>(`${this.apiUrl}/budget/savings-celebration`);
+  }
+
+  getAlerts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/budget/alerts`);
   }
 }

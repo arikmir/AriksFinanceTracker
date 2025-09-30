@@ -15,6 +15,11 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 @NgModule({
   exports: [
@@ -33,7 +38,12 @@ import { MatChipsModule } from '@angular/material/chips';
     MatDialogModule,
     MatSnackBarModule,
     MatProgressBarModule,
-    MatChipsModule
+    MatChipsModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatMenuModule,
+    MatDividerModule
   ]
 })
 export class MaterialModule { }

@@ -1,12 +1,253 @@
 <div class="reports-container">
   <mat-toolbar color="primary">
-    <h1>Financial Reports</h1>
+    <h1>📊 Financial Reports & Analytics</h1>
+    <span class="spacer"></span>
+    <button mat-icon-button (click)="refreshData()" matTooltip="Refresh Data">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <button mat-raised-button color="accent" (click)="exportReport()" matTooltip="Export Report">
+      <mat-icon>download</mat-icon>
+      Export
+    </button>
   </mat-toolbar>
-  <div class="content">
-    <mat-card>
+
+  <div class="content" *ngIf="!isLoading">
+    <!-- Error Message -->
+    <mat-card *ngIf="errorMessage" class="error-card">
       <mat-card-content>
-        <p>Financial reports coming soon!</p>
+        <div class="error-content">
+          <mat-icon color="warn">error</mat-icon>
+          <span>{{ errorMessage }}</span>
+          <button mat-button (click)="refreshData()">Try Again</button>
+        </div>
       </mat-card-content>
     </mat-card>
+
+    <!-- Success Content -->
+    <div *ngIf="!errorMessage && budgetStatus && financialHealth">
+      <!-- Financial Health Summary -->
+      <mat-card class="summary-card">
+        <mat-card-header>
+          <mat-card-title>📈 Financial Health Overview</mat-card-title>
+          <mat-card-subtitle>Your current financial performance</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="health-summary">
+            <div class="health-metric">
+              <div class="metric-value" [class]="getHealthGradeColor(financialHealth.grade)">
+                {{ financialHealth.grade }}
+              </div>
+              <div class="metric-label">Financial Grade</div>
+            </div>
+            <div class="health-metric">
+              <div class="metric-value savings-rate" [style.color]="getSavingsRateColor(budgetStatus.savingsRate)">
+                {{ formatPercentage(budgetStatus.savingsRate) }}
+              </div>
+              <div class="metric-label">Savings Rate</div>
+            </div>
+            <div class="health-metric">
+              <div class="metric-value">
+                {{ formatCurrency(budgetStatus.actualSavings) }}
+              </div>
+              <div class="metric-label">Monthly Savings</div>
+            </div>
+            <div class="health-metric">
+              <div class="metric-value">
+                {{ financialHealth.score.toFixed(0) }}/100
+              </div>
+              <div class="metric-label">Health Score</div>
+            </div>
+          </div>
+          <div class="achievements-section">
+            <h4>🏆 Current Achievements</h4>
+            <mat-chip-set>
+              <mat-chip *ngFor="let achievement of financialHealth.achievements" color="accent">
+                {{ achievement }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Savings Rate Trend -->
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>💰 Savings Rate Trend</mat-card-title>
+          <mat-card-subtitle>Track your savings performance over time</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-container">
+            <div class="savings-trend-chart">
+              <div *ngFor="let data of savingsRateHistory; let i = index" 
+                   class="trend-bar" 
+                   [style.height.%]="(data.rate / 30) * 100"
+                   [style.background-color]="getSavingsRateColor(data.rate)">
+                <div class="bar-label">{{ formatPercentage(data.rate) }}</div>
+              </div>
+            </div>
+            <div class="chart-labels">
+              <div *ngFor="let data of savingsRateHistory" class="label">
+                {{ data.month }}
+              </div>
+            </div>
+          </div>
+          <div class="trend-insights">
+            <div class="insight" *ngIf="budgetStatus.savingsRate >= 20">
+              <mat-icon color="accent">trending_up</mat-icon>
+              <span>Excellent! You're consistently hitting your 20%+ savings target!</span>
+            </div>
+            <div class="insight" *ngIf="budgetStatus.savingsRate >= 15 && budgetStatus.savingsRate < 20">
+              <mat-icon color="primary">analytics</mat-icon>
+              <span>Good progress! You're building wealth steadily - aim for 20% next!</span>
+            </div>
+            <div class="insight" *ngIf="budgetStatus.savingsRate < 15">
+              <mat-icon color="warn">lightbulb</mat-icon>
+              <span>Focus opportunity: Increase your savings rate to 15% for better financial health!</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Category Spending Breakdown -->
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>🏷️ Category Spending Analysis</mat-card-title>
+          <mat-card-subtitle>Where your money goes this month</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="category-analysis">
+            <div *ngFor="let category of categorySpendingData; let i = index" class="category-row">
+              <div class="category-info">
+                <div class="category-name">{{ category.name }}</div>
+                <div class="category-amounts">
+                  <span class="spent">{{ formatCurrency(category.spent) }}</span>
+                  <span class="budget">/ {{ formatCurrency(category.budget) }}</span>
+                </div>
+              </div>
+              <div class="category-visual">
+                <div class="spending-bar">
+                  <div class="bar-fill" 
+                       [style.width.%]="Math.min(100, category.percentage)"
+                       [style.background-color]="getCategoryColor(i)">
+                  </div>
+                </div>
+                <div class="percentage">{{ formatPercentage(category.percentage) }}</div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Savings Goals Progress -->
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>🎯 Savings Goals Progress</mat-card-title>
+          <mat-card-subtitle>Track progress toward your financial objectives</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="goals-progress">
+            <div *ngFor="let goal of savingsGoalsData" class="goal-progress-row">
+              <div class="goal-info">
+                <div class="goal-name">
+                  {{ goal.name }}
+                  <mat-icon *ngIf="goal.achieved" color="accent" class="achievement-star">star</mat-icon>
+                </div>
+                <div class="goal-amounts">
+                  <span class="actual">{{ formatCurrency(goal.actual) }}</span>
+                  <span class="target">/ {{ formatCurrency(goal.target) }}</span>
+                </div>
+              </div>
+              <div class="goal-progress-visual">
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="goal.progress"
+                  [color]="goal.achieved ? 'accent' : 'primary'">
+                </mat-progress-bar>
+                <div class="progress-percentage">{{ formatPercentage(goal.progress) }}</div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Monthly Trends -->
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>📅 Monthly Financial Trends</mat-card-title>
+          <mat-card-subtitle>Income, expenses, and savings over time</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="trends-chart">
+            <div class="chart-legend">
+              <div class="legend-item">
+                <div class="legend-color income"></div>
+                <span>Income</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color expenses"></div>
+                <span>Expenses</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color savings"></div>
+                <span>Savings</span>
+              </div>
+            </div>
+            <div class="trends-bars">
+              <div *ngFor="let trend of monthlyTrendsData" class="trend-group">
+                <div class="trend-month">{{ trend.month }}</div>
+                <div class="trend-bars-stack">
+                  <div class="trend-bar income" 
+                       [style.height.px]="(trend.income / 10000) * 200"
+                       matTooltip="Income: {{ formatCurrency(trend.income) }}">
+                  </div>
+                  <div class="trend-bar expenses" 
+                       [style.height.px]="(trend.expenses / 10000) * 200"
+                       matTooltip="Expenses: {{ formatCurrency(trend.expenses) }}">
+                  </div>
+                  <div class="trend-bar savings" 
+                       [style.height.px]="(trend.savings / 10000) * 200"
+                       matTooltip="Savings: {{ formatCurrency(trend.savings) }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Recommendations -->
+      <mat-card class="recommendations-card">
+        <mat-card-header>
+          <mat-card-title>💡 Personalized Recommendations</mat-card-title>
+          <mat-card-subtitle>Based on your financial patterns</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="recommendations-list">
+            <div *ngFor="let recommendation of financialHealth.recommendations" class="recommendation-item">
+              <mat-icon color="primary">lightbulb</mat-icon>
+              <span>{{ recommendation }}</span>
+            </div>
+          </div>
+          <div class="financial-insights">
+            <div class="insight-card">
+              <h4>🎯 Current Financial Period</h4>
+              <p>{{ budgetStatus.currentPeriod }}</p>
+              <p class="period-description">{{ budgetStatus.periodDescription }}</p>
+            </div>
+            <div class="insight-card" *ngIf="budgetStatus.daysLeftInMonth > 0">
+              <h4>⏰ This Month</h4>
+              <p>{{ budgetStatus.daysLeftInMonth }} days remaining</p>
+              <p>Recommended daily budget: {{ formatCurrency(budgetStatus.remainingBudget / budgetStatus.daysLeftInMonth) }}</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+    <p>Loading financial reports...</p>
   </div>
 </div>

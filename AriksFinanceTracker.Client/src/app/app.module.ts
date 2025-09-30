@@ -8,6 +8,7 @@ import { MaterialModule } from './material.module';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { MonthPickerDialogComponent } from './components/dashboard/month-picker-dialog.component';
 import { ExpensesComponent } from './components/expenses/expenses.component';
 import { IncomeComponent } from './components/income/income.component';
 import { BudgetComponent } from './components/budget/budget.component';
@@ -18,6 +19,7 @@ import { SidenavComponent } from './components/sidenav/sidenav.component';
   declarations: [
     AppComponent,
     DashboardComponent,
+    MonthPickerDialogComponent,
     ExpensesComponent,
     IncomeComponent,
     BudgetComponent,

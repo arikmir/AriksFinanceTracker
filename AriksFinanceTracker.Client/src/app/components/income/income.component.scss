@@ -1,240 +1,327 @@
 .income-container {
-  height: 100%;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   
-  mat-toolbar {
-    padding: 16px 24px;
+  .page-header {
+    margin-bottom: 32px;
     
-    .header-icon {
-      margin-right: 16px;
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0;
+      color: #1a1a1a;
     }
     
-    .spacer {
-      flex: 1 1 auto;
-    }
-    
-    .add-fab {
-      transform: scale(0.8);
+    p {
+      color: #666;
+      margin: 4px 0 0 0;
+      font-size: 16px;
     }
   }
   
-  .content {
-    padding: 24px;
-    background: #f8fffe;
-    min-height: calc(100vh - 80px);
+  .content-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  // Stats Row
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
     
-    .income-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      margin-bottom: 32px;
+    .stat-card {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
       
-      .income-card {
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      }
+      
+      mat-card-content {
+        display: flex;
+        align-items: center;
+        padding: 24px;
         
-        &:hover {
-          transform: translateY(-4px);
-        }
-        
-        .income-avatar {
-          width: 56px;
-          height: 56px;
-          border-radius: 50%;
+        .stat-icon {
+          width: 60px;
+          height: 60px;
+          border-radius: 12px;
+          background: var(--kiwi-light-green);
           display: flex;
           align-items: center;
           justify-content: center;
+          margin-right: 20px;
           
           mat-icon {
-            font-size: 32px;
-            width: 32px;
-            height: 32px;
-            color: white;
-          }
-          
-          &.salary {
-            background: var(--kiwi-dark-teal);
-          }
-          
-          &.freelance {
-            background: var(--kiwi-medium-green);
-          }
-          
-          &.investment {
-            background: var(--kiwi-light-green);
-            
-            mat-icon {
-              color: var(--kiwi-dark-teal);
-            }
+            font-size: 28px;
+            width: 28px;
+            height: 28px;
+            color: var(--kiwi-dark-teal);
           }
         }
         
-        mat-card-content {
-          padding-top: 16px;
-          
-          .income-amount {
-            display: flex;
-            align-items: baseline;
-            margin: 16px 0;
-            
-            .currency {
-              font-size: 24px;
-              font-weight: 300;
-              color: #666;
-              margin-right: 4px;
-            }
-            
-            .amount {
-              font-size: 32px;
-              font-weight: 700;
-              color: var(--kiwi-dark-teal);
-            }
+        .stat-info {
+          h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            color: #1a1a1a;
           }
           
-          .status-chip {
-            &.active {
-              background: var(--kiwi-medium-green);
-              color: white;
-            }
-            
-            &.variable {
-              background: var(--kiwi-warning);
-              color: white;
-            }
-            
-            &.passive {
-              background: var(--kiwi-light-green);
-              color: var(--kiwi-dark-teal);
-            }
+          p {
+            font-size: 14px;
+            color: #666;
+            margin: 4px 0 0 0;
           }
         }
       }
     }
+  }
+  
+  // Form Card
+  .form-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     
-    .goal-card {
-      margin-bottom: 32px;
-      border-radius: 16px;
+    mat-card-header {
+      padding: 24px 24px 16px;
       
-      .goal-avatar {
-        width: 56px;
-        height: 56px;
-        background: var(--kiwi-medium-green);
+      mat-card-title {
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 600;
         
         mat-icon {
-          color: white;
-          font-size: 32px;
-          width: 32px;
-          height: 32px;
+          color: var(--kiwi-medium-green);
+        }
+      }
+    }
+    
+    mat-card-content {
+      padding: 0 24px 24px;
+      
+      .income-form {
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+        
+        .full-width {
+          width: 100%;
+        }
+        
+        mat-form-field {
+          width: 100%;
+        }
+        
+        mat-divider {
+          margin: 24px 0 16px;
+        }
+        
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 20px;
+          
+          button {
+            min-width: 120px;
+          }
+        }
+      }
+    }
+  }
+  
+  // List Card
+  .list-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    
+    mat-card-header {
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+        
+        mat-icon {
+          color: var(--kiwi-medium-green);
         }
       }
       
-      .goal-progress {
-        .goal-numbers {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 16px;
-          
-          .current, .target {
-            text-align: center;
-            
-            .label {
-              display: block;
-              font-size: 14px;
-              color: #666;
-              margin-bottom: 4px;
-            }
-            
-            .value {
-              display: block;
-              font-size: 24px;
-              font-weight: 700;
-              color: var(--kiwi-dark-teal);
-            }
-          }
-        }
-        
-        .goal-bar {
-          height: 12px;
-          border-radius: 6px;
-          margin: 16px 0;
-        }
-        
-        .progress-text {
-          display: flex;
-          justify-content: space-between;
-          font-size: 14px;
+      .header-actions {
+        button {
           color: #666;
         }
       }
     }
     
-    .feature-card {
-      border-radius: 16px;
+    mat-card-content {
+      padding: 0 24px 24px;
       
-      .feature-avatar {
-        width: 56px;
-        height: 56px;
-        background: var(--kiwi-light-green);
+      .income-list {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
         
-        mat-icon {
-          color: var(--kiwi-dark-teal);
-          font-size: 32px;
-          width: 32px;
-          height: 32px;
-        }
-      }
-      
-      .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-        
-        .feature-item {
-          border-radius: 12px;
-          transition: transform 0.2s;
+        .income-item {
+          display: flex;
+          align-items: center;
+          padding: 16px;
+          border-radius: 8px;
+          background: #f8f9fa;
+          transition: all 0.2s ease;
           
           &:hover {
-            transform: translateY(-2px);
+            background: #f0f2f4;
+            
+            .item-actions {
+              opacity: 1;
+            }
           }
           
-          mat-card-content {
-            text-align: center;
+          .income-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
             
-            .feature-icon {
-              font-size: 48px;
-              width: 48px;
-              height: 48px;
+            mat-icon {
               color: var(--kiwi-medium-green);
-              margin-bottom: 16px;
+              font-size: 24px;
             }
+          }
+          
+          .income-details {
+            flex: 1;
             
             h4 {
-              margin: 0 0 8px 0;
-              color: var(--kiwi-dark-teal);
+              font-size: 16px;
+              font-weight: 600;
+              margin: 0 0 4px 0;
+              color: #1a1a1a;
             }
             
             p {
-              margin: 0 0 16px 0;
-              color: #666;
               font-size: 14px;
+              color: #666;
+              margin: 0;
             }
             
-            .status-chip {
-              background: var(--kiwi-cream);
+            small {
+              font-size: 13px;
+              color: #999;
+              display: block;
+              margin-top: 4px;
+            }
+          }
+          
+          .income-amount {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            
+            .amount {
+              font-size: 20px;
+              font-weight: 700;
               color: var(--kiwi-dark-teal);
-              font-size: 12px;
+            }
+            
+            .item-actions {
+              opacity: 0;
+              transition: opacity 0.2s ease;
+              
+              button {
+                color: #666;
+              }
             }
           }
         }
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        
+        mat-icon {
+          font-size: 64px;
+          width: 64px;
+          height: 64px;
+          color: #ddd;
+          margin-bottom: 16px;
+        }
+        
+        h3 {
+          font-size: 18px;
+          color: #666;
+          margin: 0 0 8px 0;
+        }
+        
+        p {
+          font-size: 14px;
+          color: #999;
+          margin: 0;
+        }
+      }
+    }
+  }
+  
+  // Snackbar
+  .snackbar-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    
+    .snackbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      
+      &.success {
+        background: #4caf50;
+        color: white;
+        
+        mat-icon {
+          color: white;
+        }
+      }
+      
+      &.error {
+        background: #f44336;
+        color: white;
+        
+        mat-icon {
+          color: white;
+        }
+      }
+      
+      mat-icon {
+        font-size: 20px;
       }
     }
   }

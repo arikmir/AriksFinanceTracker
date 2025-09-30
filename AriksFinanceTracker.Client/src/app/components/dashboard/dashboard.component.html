@@ -3,33 +3,160 @@
     <mat-icon class="header-icon">dashboard</mat-icon>
     <h1 class="mat-h1">Arik's Financial Dashboard</h1>
     <span class="spacer"></span>
-    <mat-chip-set>
-      <mat-chip>
-        <mat-icon matChipAvatar>today</mat-icon>
-        September 2025
-      </mat-chip>
-    </mat-chip-set>
+    <div class="date-navigation">
+      <button mat-icon-button (click)="previousMonth()" matTooltip="Previous Month">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <mat-chip-set>
+        <mat-chip class="month-selector" (click)="openMonthPicker()">
+          <mat-icon matChipAvatar>today</mat-icon>
+          {{ currentMonthYear }}
+          <mat-icon matChipTrailingIcon>arrow_drop_down</mat-icon>
+        </mat-chip>
+      </mat-chip-set>
+      <button mat-icon-button (click)="nextMonth()" matTooltip="Next Month">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <button mat-icon-button 
+              (click)="goToCurrentMonth()" 
+              *ngIf="!isCurrentMonth()"
+              matTooltip="Go to Current Month"
+              class="today-button">
+        <mat-icon>today</mat-icon>
+      </button>
+    </div>
   </mat-toolbar>
 
   <div class="dashboard-content">
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <button mat-fab color="primary" class="add-expense-fab" title="Add Expense">
-        <mat-icon>add</mat-icon>
-      </button>
-      <button mat-stroked-button color="accent" class="action-btn">
+      <button mat-stroked-button color="accent" class="action-btn" (click)="toggleExpenseForm()">
         <mat-icon>receipt</mat-icon>
         Add Expense
       </button>
-      <button mat-stroked-button color="accent" class="action-btn">
+      <button mat-stroked-button color="accent" class="action-btn" (click)="toggleIncomeForm()">
         <mat-icon>attach_money</mat-icon>
         Add Income
       </button>
-      <button mat-stroked-button class="action-btn">
+      <button mat-stroked-button class="action-btn" (click)="navigateToReports()">
         <mat-icon>assessment</mat-icon>
         View Report
       </button>
     </div>
+
+    <!-- Inline Expense Form -->
+    <mat-card class="inline-form-card mat-elevation-z8" *ngIf="showExpenseForm">
+      <mat-card-header>
+        <mat-card-title>Add New Expense</mat-card-title>
+        <mat-card-subtitle>Quick expense entry</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="expenseForm" (ngSubmit)="onSubmitExpense()" class="inline-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Amount</mat-label>
+              <input matInput type="number" step="0.01" formControlName="amount" placeholder="0.00">
+              <span matPrefix>$&nbsp;</span>
+              <mat-error *ngIf="expenseForm.get('amount')?.hasError('required')">Amount is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Date</mat-label>
+              <input matInput [matDatepicker]="expenseDatePicker" formControlName="date">
+              <mat-datepicker-toggle matSuffix [for]="expenseDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #expenseDatePicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Category</mat-label>
+              <mat-select formControlName="category">
+                <mat-option *ngFor="let category of categories" [value]="category">
+                  <mat-icon>{{getCategoryIcon(category)}}</mat-icon>
+                  {{getCategoryLabel(category)}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Payment Method</mat-label>
+              <mat-select formControlName="paymentMethod">
+                <mat-option *ngFor="let method of paymentMethods" [value]="method">
+                  {{method}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <input matInput formControlName="description" placeholder="What was this expense for?">
+            <mat-error *ngIf="expenseForm.get('description')?.hasError('required')">Description is required</mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-button type="button" (click)="toggleExpenseForm()">Cancel</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="expenseForm.invalid || isSubmitting">
+              <mat-icon>{{isSubmitting ? 'refresh' : 'add'}}</mat-icon>
+              {{isSubmitting ? 'Adding...' : 'Add Expense'}}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Inline Income Form -->
+    <mat-card class="inline-form-card mat-elevation-z8" *ngIf="showIncomeForm">
+      <mat-card-header>
+        <mat-card-title>Add New Income</mat-card-title>
+        <mat-card-subtitle>Quick income entry</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="incomeForm" (ngSubmit)="onSubmitIncome()" class="inline-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Amount</mat-label>
+              <input matInput type="number" step="0.01" formControlName="amount" placeholder="0.00">
+              <span matPrefix>$&nbsp;</span>
+              <mat-error *ngIf="incomeForm.get('amount')?.hasError('required')">Amount is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Date</mat-label>
+              <input matInput [matDatepicker]="incomeDatePicker" formControlName="date">
+              <mat-datepicker-toggle matSuffix [for]="incomeDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #incomeDatePicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Source</mat-label>
+            <mat-select formControlName="source">
+              <mat-option value="Primary Income">Primary Income</mat-option>
+              <mat-option value="Salary">Salary</mat-option>
+              <mat-option value="Bonus">Bonus</mat-option>
+              <mat-option value="Freelance">Freelance</mat-option>
+              <mat-option value="Investment">Investment</mat-option>
+              <mat-option value="Other">Other</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Notes (Optional)</mat-label>
+            <textarea matInput formControlName="notes" placeholder="Additional notes about this income" rows="3"></textarea>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-button type="button" (click)="toggleIncomeForm()">Cancel</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="incomeForm.invalid || isSubmitting">
+              <mat-icon>{{isSubmitting ? 'refresh' : 'add'}}</mat-icon>
+              {{isSubmitting ? 'Adding...' : 'Add Income'}}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
 
     <!-- Summary Cards -->
     <div class="summary-cards">
@@ -122,13 +249,9 @@
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button color="primary">
+        <button mat-button color="primary" routerLink="/budget">
           <mat-icon>edit</mat-icon>
           Manage Budget
-        </button>
-        <button mat-raised-button color="accent">
-          <mat-icon>add</mat-icon>
-          Add Category
         </button>
       </mat-card-actions>
     </mat-card>
@@ -188,14 +311,7 @@
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button>
-          <mat-icon>schedule</mat-icon>
-          Set Reminder
-        </button>
-        <button mat-raised-button color="primary">
-          <mat-icon>calculate</mat-icon>
-          Plan Savings
-        </button>
+        <!-- Reminder and savings planning features coming soon -->
       </mat-card-actions>
     </mat-card>
   </div>
