@@ -1,25 +1,64 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { FinanceService } from '../../services/finance.service';
-import { BudgetStatus, FinancialHealth, SavingsCelebration, CategoryBudget, SavingsProgress } from '../../models/budget.model';
-import { Observable, forkJoin } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { DataRefreshService } from '../../services/data-refresh.service';
+import { BudgetStatus, FinancialHealth, SavingsCelebration, CategoryBudget } from '../../models/budget.model';
+import { forkJoin, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-budget',
   templateUrl: './budget.component.html',
   styleUrls: ['./budget.component.scss']
 })
-export class BudgetComponent implements OnInit {
+export class BudgetComponent implements OnInit, OnDestroy {
+  @ViewChild('budgetEditDialog') budgetEditDialog!: TemplateRef<any>;
+  @ViewChild('healthDialog') healthDialog!: TemplateRef<any>;
+
   budgetStatus?: BudgetStatus;
   financialHealth?: FinancialHealth;
-  savingsCelebration?: SavingsCelebration;
   isLoading = true;
   errorMessage?: string;
+  
+  // Achievement tracking
+  achievements: string[] = [];
+  achievementMessage = '';
+  showAchievements = true;
+  
+  // Budget editing
+  editingCategory?: CategoryBudget;
+  newBudgetLimit = 0;
+  
+  Math = Math; // Make Math available in template
+  
+  private subscriptions: Subscription = new Subscription();
 
-  constructor(private financeService: FinanceService) {}
+  constructor(
+    private financeService: FinanceService,
+    private dataRefreshService: DataRefreshService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.loadBudgetData();
+    
+    // Subscribe to data refresh events
+    this.subscriptions.add(
+      this.dataRefreshService.expenseRefresh$.subscribe(() => {
+        this.loadBudgetData();
+      })
+    );
+    
+    this.subscriptions.add(
+      this.dataRefreshService.incomeRefresh$.subscribe(() => {
+        this.loadBudgetData();
+      })
+    );
+  }
+  
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   loadBudgetData(): void {
@@ -38,7 +77,7 @@ export class BudgetComponent implements OnInit {
           next: (data) => {
             this.budgetStatus = data.budgetStatus;
             this.financialHealth = data.financialHealth;
-            this.savingsCelebration = data.savingsCelebration;
+            this.updateAchievements(data.savingsCelebration);
             this.isLoading = false;
           },
           error: (error) => {
@@ -60,6 +99,74 @@ export class BudgetComponent implements OnInit {
     this.loadBudgetData();
   }
 
+  editBudgetLimit(category: CategoryBudget): void {
+    this.editingCategory = category;
+    this.newBudgetLimit = category.limit;
+    this.dialog.open(this.budgetEditDialog, {
+      width: '400px',
+      disableClose: true
+    });
+  }
+
+  saveBudgetLimit(): void {
+    if (!this.editingCategory) return;
+
+    this.financeService.updateCategoryLimit(
+      this.editingCategory.category, 
+      this.newBudgetLimit
+    ).subscribe({
+      next: () => {
+        this.snackBar.open('Budget limit updated successfully!', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top'
+        });
+        this.dialog.closeAll();
+        this.loadBudgetData();
+      },
+      error: (error) => {
+        console.error('Error updating budget limit:', error);
+        this.snackBar.open('Failed to update budget limit', 'Close', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+  }
+
+  viewFinancialHealth(): void {
+    this.dialog.open(this.healthDialog, {
+      width: '500px',
+      maxWidth: '90vw'
+    });
+  }
+
+  viewAchievements(): void {
+    this.showAchievements = true;
+  }
+
+  dismissAchievements(): void {
+    this.showAchievements = false;
+  }
+
+  updateAchievements(celebration: SavingsCelebration): void {
+    if (celebration && celebration.achievements.length > 0) {
+      this.achievements = celebration.achievements;
+      this.achievementMessage = celebration.message;
+    }
+  }
+
+  getMotivationalMessage(): string {
+    if (!this.budgetStatus) return '';
+    
+    const rate = this.budgetStatus.savingsRate;
+    if (rate >= 30) return "Incredible! You're a financial rockstar!";
+    if (rate >= 24) return "Perfect! You've hit your target!";
+    if (rate >= 20) return "Excellent savings rate!";
+    if (rate >= 15) return "Great progress on your savings!";
+    return "Keep going, you're doing well!";
+  }
+
   getCategoryIcon(categoryName: string): string {
     const iconMap: { [key: string]: string } = {
       'Mortgage': 'home',
@@ -71,32 +178,27 @@ export class BudgetComponent implements OnInit {
       'Entertainment': 'movie',
       'Shopping': 'shopping_bag',
       'Miscellaneous': 'category',
-      'Health & Fitness': 'fitness_center'
+      'Health & Fitness': 'fitness_center',
+      'Home': 'home_work',
+      'Savings': 'savings',
+      'Repayment': 'payment'
     };
     return iconMap[categoryName] || 'account_balance_wallet';
   }
 
-  getSavingsIcon(goalName: string): string {
-    if (goalName.includes('Emergency')) return 'security';
-    if (goalName.includes('Investment')) return 'trending_up';
-    if (goalName.includes('House')) return 'home_work';
-    return 'savings';
+  getProgressColor(percentage: number): 'primary' | 'accent' | 'warn' {
+    if (percentage < 70) return 'primary';
+    if (percentage < 90) return 'accent';
+    return 'warn';
   }
 
   getHealthGradeColor(grade: string): string {
     switch (grade) {
-      case 'Excellent': return 'success';
-      case 'Good': return 'primary';
-      case 'Fair': return 'accent';
-      default: return 'warn';
+      case 'Excellent': return 'excellent';
+      case 'Good': return 'good';
+      case 'Fair': return 'fair';
+      default: return 'improving';
     }
-  }
-
-  getProgressBarColor(percentage: number): string {
-    if (percentage >= 100) return 'success';
-    if (percentage >= 75) return 'primary';
-    if (percentage >= 50) return 'accent';
-    return 'warn';
   }
 
   formatCurrency(amount: number): string {

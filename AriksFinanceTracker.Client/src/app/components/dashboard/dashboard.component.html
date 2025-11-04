@@ -173,8 +173,8 @@
             <span class="currency">$</span>
             <span class="amount">{{dashboardData.totalIncome | number:'1.0-0'}}</span>
           </div>
-          <mat-progress-bar mode="determinate" value="85" color="accent"></mat-progress-bar>
-          <small class="progress-label">85% of monthly target</small>
+          <mat-progress-bar mode="determinate" [value]="getIncomePercentage()" color="accent"></mat-progress-bar>
+          <small class="progress-label">{{getIncomePercentage() | number:'1.0-0'}}% of monthly target</small>
         </mat-card-content>
       </mat-card>
 
@@ -191,8 +191,8 @@
             <span class="currency">$</span>
             <span class="amount">{{dashboardData.totalExpenses | number:'1.0-0'}}</span>
           </div>
-          <mat-progress-bar mode="determinate" value="73" color="warn"></mat-progress-bar>
-          <small class="progress-label">73% of budget used</small>
+          <mat-progress-bar mode="determinate" [value]="getExpensePercentage()" color="warn"></mat-progress-bar>
+          <small class="progress-label">{{getExpensePercentage() | number:'1.0-0'}}% of budget used</small>
         </mat-card-content>
       </mat-card>
 
@@ -201,19 +201,104 @@
           <div mat-card-avatar class="card-avatar savings-avatar">
             <mat-icon>savings</mat-icon>
           </div>
-          <mat-card-title class="mat-h3">Net Savings</mat-card-title>
-          <mat-card-subtitle>Current month balance</mat-card-subtitle>
+          <mat-card-title class="mat-h3">Savings Overview</mat-card-title>
+          <mat-card-subtitle>Track your financial progress</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <div class="amount-display">
-            <span class="currency">$</span>
-            <span class="amount" [style.color]="getSavingsColor()">{{dashboardData.netSavings | number:'1.0-0'}}</span>
-          </div>
-          <div class="savings-rate">
-            <mat-chip [style.background-color]="getSavingsColor()" class="rate-chip">
-              {{dashboardData.savingsRate | number:'1.1-1'}}% savings rate
-            </mat-chip>
-          </div>
+          <mat-tab-group class="savings-tabs" [(selectedIndex)]="selectedSavingsTab">
+            <mat-tab label="Net Savings">
+              <div class="tab-content">
+                <div class="amount-display">
+                  <span class="currency">$</span>
+                  <span class="amount" [style.color]="getSavingsColor()">{{dashboardData.netSavings | number:'1.0-0'}}</span>
+                </div>
+                <div class="savings-rate">
+                  <mat-chip [style.background-color]="getSavingsColor()" class="rate-chip">
+                    {{dashboardData.savingsRate | number:'1.1-1'}}% savings rate
+                  </mat-chip>
+                </div>
+              </div>
+            </mat-tab>
+            <mat-tab label="Total Savings">
+              <div class="tab-content">
+                <div class="total-savings-header">
+                  <div class="amount-display">
+                    <span class="currency">$</span>
+                    <span class="amount">{{totalSavingsAmount | number:'1.0-0'}}</span>
+                  </div>
+                  <button mat-icon-button color="primary" (click)="toggleTotalSavingsForm()" matTooltip="Add Savings Entry">
+                    <mat-icon>{{showTotalSavingsForm ? 'close' : 'add'}}</mat-icon>
+                  </button>
+                </div>
+                
+                <!-- Add/Edit Total Savings Form -->
+                <div class="total-savings-form" *ngIf="showTotalSavingsForm">
+                  <form [formGroup]="totalSavingsForm" (ngSubmit)="onSubmitTotalSavings()" class="compact-form">
+                    <div class="form-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Amount</mat-label>
+                        <input matInput type="number" step="0.01" formControlName="amount" placeholder="0.00">
+                        <span matPrefix>$&nbsp;</span>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Date</mat-label>
+                        <input matInput [matDatepicker]="savingsDatePicker" formControlName="date">
+                        <mat-datepicker-toggle matSuffix [for]="savingsDatePicker"></mat-datepicker-toggle>
+                        <mat-datepicker #savingsDatePicker></mat-datepicker>
+                      </mat-form-field>
+                    </div>
+                    <div class="form-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Category</mat-label>
+                        <mat-select formControlName="category">
+                          <mat-option value="Emergency Fund">Emergency Fund</mat-option>
+                          <mat-option value="Investment">Investment</mat-option>
+                          <mat-option value="Goal Savings">Goal Savings</mat-option>
+                          <mat-option value="Retirement">Retirement</mat-option>
+                          <mat-option value="Other">Other</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Description</mat-label>
+                        <input matInput formControlName="description" placeholder="What is this savings for?">
+                      </mat-form-field>
+                    </div>
+                    <div class="form-actions">
+                      <button mat-button type="button" (click)="cancelTotalSavingsForm()">Cancel</button>
+                      <button mat-raised-button color="primary" type="submit" [disabled]="totalSavingsForm.invalid || isSubmittingSavings">
+                        <mat-icon>{{isSubmittingSavings ? 'refresh' : (editingSavingsId ? 'save' : 'add')}}</mat-icon>
+                        {{isSubmittingSavings ? 'Saving...' : (editingSavingsId ? 'Update' : 'Add')}}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- Total Savings List -->
+                <div class="total-savings-list" *ngIf="totalSavingsList.length > 0">
+                  <div class="savings-entry" *ngFor="let saving of totalSavingsList" [class.editing]="editingSavingsId === saving.id">
+                    <div class="entry-content" (click)="editTotalSavings(saving)">
+                      <div class="entry-header">
+                        <span class="entry-amount">${{saving.amount | number:'1.0-0'}}</span>
+                        <span class="entry-date">{{saving.date | date:'MMM d'}}</span>
+                      </div>
+                      <div class="entry-details">
+                        <span class="entry-category">{{saving.category}}</span>
+                        <span class="entry-description">{{saving.description}}</span>
+                      </div>
+                    </div>
+                    <button mat-icon-button color="warn" (click)="deleteTotalSavings(saving.id!)" matTooltip="Delete">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="no-savings" *ngIf="totalSavingsList.length === 0">
+                  <mat-icon>account_balance_wallet</mat-icon>
+                  <p>No savings entries yet. Add your first one!</p>
+                </div>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
         </mat-card-content>
       </mat-card>
     </div>
@@ -240,10 +325,10 @@
               </div>
               <mat-progress-bar 
                 mode="determinate" 
-                [value]="(category.amount / 4000) * 100" 
+                [value]="getCategorySpentPercentage(category)" 
                 color="primary">
               </mat-progress-bar>
-              <small class="budget-progress">{{(category.amount / 4000) * 100 | number:'1.0-0'}}% of budget</small>
+              <small class="budget-progress">${{getCategorySpentAmount(category.name) | number:'1.0-0'}} spent ({{getCategorySpentPercentage(category) | number:'1.0-0'}}%)</small>
             </mat-card-content>
           </mat-card>
         </div>

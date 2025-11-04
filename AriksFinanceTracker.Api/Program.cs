@@ -24,6 +24,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Initialize database
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<FinanceContext>();
+    context.Database.EnsureCreated();
+    
+    var budgetService = scope.ServiceProvider.GetRequiredService<AriksFinanceTracker.Api.Services.BudgetService>();
+    await budgetService.InitializeAriksBudgetAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -48,6 +58,7 @@ public class FinanceContext : DbContext
     public DbSet<SavingsGoal> SavingsGoals { get; set; }
     public DbSet<SpendingAlert> SpendingAlerts { get; set; }
     public DbSet<MonthlyBudgetSummary> MonthlyBudgetSummaries { get; set; }
+    public DbSet<TotalSavings> TotalSavings { get; set; }
 }
 
 public enum ExpenseCategory
@@ -88,6 +99,7 @@ public class Income
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
     public string Source { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class ExpenseAnalyticsDto
@@ -172,6 +184,7 @@ public class SavingsGoal
     public FinancialPeriod FinancialPeriod { get; set; }
     public bool IsRequired { get; set; } // True for emergency fund
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+   
 }
 
 public class SpendingAlert
@@ -180,6 +193,7 @@ public class SpendingAlert
     public ExpenseCategory Category { get; set; }
     public AlertType Type { get; set; }
     public string Message { get; set; }
+    
     public decimal CurrentSpending { get; set; }
     public decimal BudgetLimit { get; set; }
     public decimal PercentageUsed { get; set; }
@@ -230,7 +244,6 @@ public class CategoryBudgetDto
     public decimal Spent { get; set; }
     public decimal Remaining { get; set; }
     public decimal PercentageUsed { get; set; }
-    public decimal DailyRecommendation { get; set; }
     public bool IsEssential { get; set; }
     public string Status { get; set; } // Great, Good, Warning, Critical
     public string StatusColor { get; set; } // green, blue, yellow, orange
@@ -266,4 +279,23 @@ public class SpendingCheckDto
     public decimal RemainingBudget { get; set; }
     public decimal NewPercentageUsed { get; set; }
     public string Encouragement { get; set; }
+}
+
+public class BudgetLimitDto
+{
+    public ExpenseCategory Category { get; set; }
+    public string CategoryName { get; set; }
+    public decimal MonthlyLimit { get; set; }
+    public bool IsEssential { get; set; }
+}
+
+public class TotalSavings
+{
+    public int Id { get; set; }
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; }
+    public string Description { get; set; }
+    public string Category { get; set; } // e.g., "Emergency Fund", "Investment", "Goal Savings"
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }

@@ -18,7 +18,7 @@
           </div>
         </mat-card-content>
       </mat-card>
-      
+
       <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-icon">
@@ -30,7 +30,7 @@
           </div>
         </mat-card-content>
       </mat-card>
-      
+
       <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-icon">
@@ -61,17 +61,17 @@
               <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
               <mat-datepicker #picker></mat-datepicker>
             </mat-form-field>
-            
+
             <mat-form-field appearance="fill">
               <mat-label>Amount</mat-label>
-              <input matInput type="number" [(ngModel)]="incomeData.amount" name="amount" 
-                     placeholder="0.00" required min="0.01" step="0.01">
+              <input matInput type="number" [(ngModel)]="incomeData.amount" name="amount"
+                     placeholder="0.00">
               <span matPrefix>$&nbsp;</span>
               <mat-error *ngIf="incomeForm.controls['amount']?.invalid">
                 Please enter a valid amount
               </mat-error>
             </mat-form-field>
-            
+
             <mat-form-field appearance="fill">
               <mat-label>Source</mat-label>
               <mat-select [(ngModel)]="incomeData.source" name="source" required>
@@ -98,21 +98,21 @@
               </mat-select>
             </mat-form-field>
           </div>
-          
+
           <mat-form-field appearance="fill" class="full-width">
             <mat-label>Notes</mat-label>
-            <textarea matInput [(ngModel)]="incomeData.notes" name="notes" 
+            <textarea matInput [(ngModel)]="incomeData.notes" name="notes"
                       rows="2" placeholder="Add any additional details..."></textarea>
           </mat-form-field>
-          
+
           <mat-divider></mat-divider>
-          
+
           <div class="form-actions">
             <button mat-stroked-button type="button" (click)="resetForm()" [disabled]="isLoading">
               <mat-icon>clear</mat-icon>
               Clear
             </button>
-            <button mat-raised-button color="primary" type="submit" 
+            <button mat-raised-button color="primary" type="submit"
                     [disabled]="!incomeForm.valid || isLoading">
               <mat-icon>{{ isLoading ? 'hourglass_empty' : 'save' }}</mat-icon>
               {{ isLoading ? 'Saving...' : (editingIncome ? 'Update Income' : 'Save Income') }}
@@ -166,7 +166,7 @@
             </div>
           </div>
         </div>
-        
+
         <ng-template #noIncome>
           <div class="empty-state">
             <mat-icon>inbox</mat-icon>

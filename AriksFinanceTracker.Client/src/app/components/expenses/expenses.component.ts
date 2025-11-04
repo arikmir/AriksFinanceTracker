@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, forkJoin, Subscription } from 'rxjs';
 import { FinanceService } from '../../services/finance.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
+import { MonthSelectionService } from '../../services/month-selection.service';
 import { 
   Expense, 
   ExpenseCategory, 
@@ -20,7 +22,7 @@ import { BudgetStatus, SpendingCheck, CheckSpendingRequest } from '../../models/
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.scss']
 })
-export class ExpensesComponent implements OnInit {
+export class ExpensesComponent implements OnInit, OnDestroy {
   expenses: Expense[] = [];
   weeklyAnalytics!: ExpenseAnalytics;
   monthlyAnalytics!: ExpenseAnalytics;
@@ -35,10 +37,17 @@ export class ExpensesComponent implements OnInit {
   spendingCheck?: SpendingCheck;
   showBudgetGuidance = false;
   
+  private subscriptions: Subscription = new Subscription();
+  
   ExpenseCategory = ExpenseCategory;
   ExpenseCategoryLabels = ExpenseCategoryLabels;
   ExpenseCategoryIcons = ExpenseCategoryIcons;
   Math = Math;
+  
+  // Date navigation
+  selectedDate: Date = new Date();
+  monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                 'July', 'August', 'September', 'October', 'November', 'December'];
   
   categories = Object.values(ExpenseCategory).filter(value => typeof value === 'number') as ExpenseCategory[];
   paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Digital Wallet'];
@@ -52,7 +61,9 @@ export class ExpensesComponent implements OnInit {
     private fb: FormBuilder,
     private financeService: FinanceService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dataRefreshService: DataRefreshService,
+    private monthSelectionService: MonthSelectionService
   ) {
     this.expenseForm = this.fb.group({
       amount: ['', [Validators.required, Validators.min(0.01)]],
@@ -67,17 +78,48 @@ export class ExpensesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Initialize with current month from service
+    this.selectedDate = this.monthSelectionService.getCurrentSelectedDate();
     this.loadData();
     this.loadBudgetStatus();
     this.setupBudgetGuidance();
+    
+    // Subscribe to month selection changes
+    this.subscriptions.add(
+      this.monthSelectionService.selectedDate$.subscribe(date => {
+        this.selectedDate = date;
+        this.loadData();
+      })
+    );
+    
+    // Subscribe to data refresh events
+    this.subscriptions.add(
+      this.dataRefreshService.expenseRefresh$.subscribe(() => {
+        this.loadData();
+        this.loadBudgetStatus();
+      })
+    );
+    
+    this.subscriptions.add(
+      this.dataRefreshService.incomeRefresh$.subscribe(() => {
+        this.loadBudgetStatus(); // Income changes affect budget status
+      })
+    );
+  }
+  
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   loadData(): void {
+    const month = this.selectedDate.getMonth() + 1; // JavaScript months are 0-based
+    const year = this.selectedDate.getFullYear();
+    
     forkJoin({
-      expenses: this.financeService.getExpenses(),
-      weeklyAnalytics: this.financeService.getWeeklyExpenseAnalytics(),
-      monthlyAnalytics: this.financeService.getMonthlyExpenseAnalytics(),
-      categorySummary: this.financeService.getCategorySummary()
+      expenses: this.financeService.getExpenses(month, year),
+      weeklyAnalytics: this.financeService.getWeeklyExpenseAnalytics(this.selectedDate),
+      monthlyAnalytics: this.financeService.getMonthlyExpenseAnalytics(this.selectedDate),
+      categorySummary: this.financeService.getCategorySummary(month, year)
     }).subscribe({
       next: (data) => {
         this.expenses = data.expenses;
@@ -108,6 +150,7 @@ export class ExpensesComponent implements OnInit {
             this.snackBar.open('Expense updated successfully', 'Close', { duration: 3000 });
             this.resetForm();
             this.loadData();
+            this.dataRefreshService.triggerExpenseRefresh();
           },
           error: (error) => {
             console.error('Error updating expense:', error);
@@ -120,6 +163,7 @@ export class ExpensesComponent implements OnInit {
             this.snackBar.open('Expense added successfully', 'Close', { duration: 3000 });
             this.resetForm();
             this.loadData();
+            this.dataRefreshService.triggerExpenseRefresh();
           },
           error: (error) => {
             console.error('Error creating expense:', error);
@@ -151,6 +195,7 @@ export class ExpensesComponent implements OnInit {
         next: () => {
           this.snackBar.open('Expense deleted successfully', 'Close', { duration: 3000 });
           this.loadData();
+          this.dataRefreshService.triggerExpenseRefresh();
         },
         error: (error) => {
           console.error('Error deleting expense:', error);
@@ -295,5 +340,44 @@ export class ExpensesComponent implements OnInit {
 
   formatPercentage(value: number): string {
     return `${value.toFixed(1)}%`;
+  }
+
+  // Month navigation methods
+  get currentMonthYear(): string {
+    return `${this.monthNames[this.selectedDate.getMonth()]} ${this.selectedDate.getFullYear()}`;
+  }
+
+  previousMonth(): void {
+    const newDate = new Date(this.selectedDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    this.selectedDate = newDate;
+    this.monthSelectionService.setSelectedDate(newDate);
+    this.loadData();
+  }
+
+  nextMonth(): void {
+    const newDate = new Date(this.selectedDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    this.selectedDate = newDate;
+    this.monthSelectionService.setSelectedDate(newDate);
+    this.loadData();
+  }
+
+  openMonthPicker(): void {
+    // For now, we'll use the month navigation buttons
+    // In a future update, we can add a proper month picker dialog
+  }
+
+  isCurrentMonth(): boolean {
+    const now = new Date();
+    return this.selectedDate.getMonth() === now.getMonth() && 
+           this.selectedDate.getFullYear() === now.getFullYear();
+  }
+
+  goToCurrentMonth(): void {
+    const currentDate = new Date();
+    this.selectedDate = currentDate;
+    this.monthSelectionService.setSelectedDate(currentDate);
+    this.loadData();
   }
 }

@@ -117,10 +117,43 @@ public class BudgetController : ControllerBase
             return BadRequest(new { message = "Error getting celebration", error = ex.Message });
         }
     }
+
+    [HttpGet("limits")]
+    public async Task<ActionResult<List<BudgetLimitDto>>> GetBudgetLimits()
+    {
+        try
+        {
+            var limits = await _budgetService.GetBudgetLimitsAsync();
+            return Ok(limits);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error getting budget limits", error = ex.Message });
+        }
+    }
+
+    [HttpPut("category/{category}/limit")]
+    public async Task<ActionResult> UpdateCategoryLimit(ExpenseCategory category, [FromBody] UpdateBudgetLimitRequest request)
+    {
+        try
+        {
+            await _budgetService.UpdateCategoryLimitAsync(category, request.NewLimit);
+            return Ok(new { message = $"Budget limit for {category} updated successfully!" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error updating budget limit", error = ex.Message });
+        }
+    }
 }
 
 public class CheckSpendingRequest
 {
     public ExpenseCategory Category { get; set; }
     public decimal Amount { get; set; }
+}
+
+public class UpdateBudgetLimitRequest
+{
+    public decimal NewLimit { get; set; }
 }

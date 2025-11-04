@@ -9,7 +9,9 @@ export enum ExpenseCategory {
   Home = 7,
   Savings = 8,
   Repayment = 9,
-  Miscellaneous = 10
+  Miscellaneous = 10,
+  Mortgage = 11,
+  Rent = 12
 }
 
 export interface Expense {
@@ -61,7 +63,9 @@ export const ExpenseCategoryLabels = {
   [ExpenseCategory.Home]: 'Home',
   [ExpenseCategory.Savings]: 'Savings',
   [ExpenseCategory.Repayment]: 'Repayment',
-  [ExpenseCategory.Miscellaneous]: 'Miscellaneous'
+  [ExpenseCategory.Miscellaneous]: 'Miscellaneous',
+  [ExpenseCategory.Mortgage]: 'Mortgage',
+  [ExpenseCategory.Rent]: 'Rent'
 };
 
 export const ExpenseCategoryIcons = {
@@ -75,5 +79,7 @@ export const ExpenseCategoryIcons = {
   [ExpenseCategory.Home]: 'home',
   [ExpenseCategory.Savings]: 'savings',
   [ExpenseCategory.Repayment]: 'payment',
-  [ExpenseCategory.Miscellaneous]: 'category'
+  [ExpenseCategory.Miscellaneous]: 'category',
+  [ExpenseCategory.Mortgage]: 'home',
+  [ExpenseCategory.Rent]: 'apartment'
 };

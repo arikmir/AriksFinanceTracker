@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { DateUtils } from '../utils/date.utils';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MonthSelectionService {
-  private selectedDateSubject = new BehaviorSubject<Date>(new Date());
+  private selectedDateSubject = new BehaviorSubject<Date>(DateUtils.getCurrentAustralianDate());
   public selectedDate$ = this.selectedDateSubject.asObservable();
 
   constructor() { }
@@ -19,10 +20,12 @@ export class MonthSelectionService {
   }
 
   getCurrentMonth(): number {
-    return this.selectedDateSubject.value.getMonth() + 1; // JavaScript months are 0-based
+    const australianMonthYear = DateUtils.getAustralianMonthYear(this.selectedDateSubject.value);
+    return australianMonthYear.month;
   }
 
   getCurrentYear(): number {
-    return this.selectedDateSubject.value.getFullYear();
+    const australianMonthYear = DateUtils.getAustralianMonthYear(this.selectedDateSubject.value);
+    return australianMonthYear.year;
   }
 }

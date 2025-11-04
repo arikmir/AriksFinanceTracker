@@ -23,6 +23,23 @@
         transform: scale(1);
       }
     }
+    
+    .month-navigation {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 16px;
+
+      .current-month-btn {
+        font-size: 16px;
+        font-weight: 500;
+        min-width: 150px;
+      }
+
+      .today-btn {
+        margin-left: 8px;
+      }
+    }
   }
   
   .content {

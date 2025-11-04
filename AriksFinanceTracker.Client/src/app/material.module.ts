@@ -20,6 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @NgModule({
   exports: [
@@ -43,7 +44,8 @@ import { MatDividerModule } from '@angular/material/divider';
     MatTooltipModule,
     MatProgressSpinnerModule,
     MatMenuModule,
-    MatDividerModule
+    MatDividerModule,
+    MatTabsModule
   ]
 })
 export class MaterialModule { }

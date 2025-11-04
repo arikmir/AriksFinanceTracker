@@ -24,8 +24,8 @@ public class BudgetService
             Name = "Double Housing Period",
             Type = FinancialPeriodType.DoubleHousingPeriod,
             StartDate = new DateTime(2024, 1, 1),
-            EndDate = new DateTime(2025, 1, 31),
-            IsActive = DateTime.Today <= new DateTime(2025, 1, 31),
+            EndDate = new DateTime(2026, 1, 31),
+            IsActive = DateTime.Today <= new DateTime(2026, 1, 31),
             Description = "Paying both mortgage and rent - tighter budget but manageable!"
         };
 
@@ -33,9 +33,9 @@ public class BudgetService
         {
             Name = "New Home Period",
             Type = FinancialPeriodType.NewHomePeriod,
-            StartDate = new DateTime(2025, 2, 1),
+            StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2030, 12, 31),
-            IsActive = DateTime.Today >= new DateTime(2025, 2, 1),
+            IsActive = DateTime.Today >= new DateTime(2026, 2, 1),
             Description = "New home ready! Higher mortgage but no more rent - more savings potential!"
         };
 
@@ -50,9 +50,12 @@ public class BudgetService
             new() { Category = ExpenseCategory.Groceries, MonthlyLimit = 400m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.Transport, MonthlyLimit = 350m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.Utilities, MonthlyLimit = 320m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
+            new() { Category = ExpenseCategory.Repayment, MonthlyLimit = 500m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.FoodAndDrinks, MonthlyLimit = 200m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Entertainment, MonthlyLimit = 150m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.HealthAndFitness, MonthlyLimit = 112m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
+            new() { Category = ExpenseCategory.Home, MonthlyLimit = 200m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
+            new() { Category = ExpenseCategory.Savings, MonthlyLimit = 300m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Shopping, MonthlyLimit = 100m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Miscellaneous, MonthlyLimit = 150m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false }
         };
@@ -64,8 +67,11 @@ public class BudgetService
             new() { Category = ExpenseCategory.Groceries, MonthlyLimit = 400m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.Transport, MonthlyLimit = 350m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.Utilities, MonthlyLimit = 320m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
+            new() { Category = ExpenseCategory.Repayment, MonthlyLimit = 500m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
             new() { Category = ExpenseCategory.FoodAndDrinks, MonthlyLimit = 300m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Entertainment, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
+            new() { Category = ExpenseCategory.Home, MonthlyLimit = 250m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
+            new() { Category = ExpenseCategory.Savings, MonthlyLimit = 400m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Shopping, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.Miscellaneous, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
             new() { Category = ExpenseCategory.HealthAndFitness, MonthlyLimit = 112m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false }
@@ -128,8 +134,6 @@ public class BudgetService
 
             var percentageUsed = budget.MonthlyLimit > 0 ? (spent / budget.MonthlyLimit) * 100 : 0;
             var remaining = budget.MonthlyLimit - spent;
-            var daysLeftInMonth = DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1;
-            var dailyRecommendation = daysLeftInMonth > 0 ? remaining / daysLeftInMonth : 0;
 
             var status = GetCategoryStatus(percentageUsed);
             var statusColor = GetStatusColor(percentageUsed);
@@ -142,7 +146,6 @@ public class BudgetService
                 Spent = spent,
                 Remaining = remaining,
                 PercentageUsed = percentageUsed,
-                DailyRecommendation = Math.Max(0, dailyRecommendation),
                 IsEssential = budget.IsEssential,
                 Status = status,
                 StatusColor = statusColor
@@ -456,5 +459,39 @@ public class BudgetService
             "Fair" => $"Good progress! Your {savingsRate:F1}% savings rate shows you're building wealth.",
             _ => $"You're on the right track! Every step towards financial health counts."
         };
+    }
+
+    public async Task<List<BudgetLimitDto>> GetBudgetLimitsAsync()
+    {
+        var currentPeriod = await GetCurrentFinancialPeriodAsync();
+        
+        var limits = await _context.BudgetLimits
+            .Where(bl => bl.FinancialPeriodId == currentPeriod.Id)
+            .Select(bl => new BudgetLimitDto
+            {
+                Category = bl.Category,
+                CategoryName = GetCategoryDisplayName(bl.Category),
+                MonthlyLimit = bl.MonthlyLimit,
+                IsEssential = bl.IsEssential
+            })
+            .ToListAsync();
+
+        return limits;
+    }
+
+    public async Task UpdateCategoryLimitAsync(ExpenseCategory category, decimal newLimit)
+    {
+        var currentPeriod = await GetCurrentFinancialPeriodAsync();
+        
+        var budgetLimit = await _context.BudgetLimits
+            .FirstOrDefaultAsync(bl => bl.Category == category && bl.FinancialPeriodId == currentPeriod.Id);
+
+        if (budgetLimit == null)
+        {
+            throw new InvalidOperationException($"No budget limit found for category {category}");
+        }
+
+        budgetLimit.MonthlyLimit = newLimit;
+        await _context.SaveChangesAsync();
     }
 }

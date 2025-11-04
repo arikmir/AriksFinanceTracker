@@ -1,4 +1,4 @@
-# Arik's Finance Tracker
+2# Arik's Finance Tracker
 
 A full-stack finance tracking application built with .NET Core Web API and Angular.
 

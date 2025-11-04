@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ng generate service:*)",
+      "Bash(ng build)",
+      "Bash(dotnet build)",
+      "Bash(git init:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(ssh:*)",
+      "Bash(gh auth:*)",
+      "Bash(brew install:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:www.notion.so)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet ef database:*)",
+      "Bash(dotnet run:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(ng serve:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(echo \"Deleting income ID: $id\")",
+      "Bash(done)",
+      "Bash(sqlite3:*)",
+      "Bash(ls:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "mcp__serena__find_file",
+      "mcp__serena__activate_project"
+    ],
+    "deny": []
+  }
+}

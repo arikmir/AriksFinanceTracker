@@ -13,9 +13,18 @@ public class ExpenseController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Expense>>> GetExpenses()
+    public async Task<ActionResult<IEnumerable<Expense>>> GetExpenses([FromQuery] int? month, [FromQuery] int? year)
     {
-        return await _context.Expenses.OrderByDescending(e => e.Date).ToListAsync();
+        var query = _context.Expenses.AsQueryable();
+        
+        if (month.HasValue && year.HasValue)
+        {
+            var startDate = new DateTime(year.Value, month.Value, 1);
+            var endDate = startDate.AddMonths(1);
+            query = query.Where(e => e.Date >= startDate && e.Date < endDate);
+        }
+        
+        return await query.OrderByDescending(e => e.Date).ToListAsync();
     }
 
     [HttpGet("{id}")]
@@ -92,28 +101,111 @@ public class ExpenseController : ControllerBase
     }
 
     [HttpGet("analytics/weekly")]
-    public async Task<ActionResult<ExpenseAnalyticsDto>> GetWeeklyAnalytics()
+    public async Task<ActionResult<ExpenseAnalyticsDto>> GetWeeklyAnalytics([FromQuery] int? month, [FromQuery] int? year)
     {
-        var startDate = DateTime.Today.AddDays(-7);
-        return await GetAnalytics(startDate, DateTime.Today);
+        DateTime startDate, endDate;
+        
+        if (month.HasValue && year.HasValue)
+        {
+            // Get the specific week within the provided month
+            var firstDayOfMonth = new DateTime(year.Value, month.Value, 1);
+            var today = DateTime.Today;
+            
+            // If looking at current month, use current date as reference
+            if (firstDayOfMonth.Month == today.Month && firstDayOfMonth.Year == today.Year)
+            {
+                // For current month, get the current week (Sunday to today)
+                endDate = today.AddDays(1).AddSeconds(-1); // End of today
+                var daysFromSunday = (int)today.DayOfWeek;
+                startDate = today.AddDays(-daysFromSunday); // Start from Sunday
+            }
+            else
+            {
+                // For past months, get the last full week of that month
+                var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+                endDate = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day
+                var daysFromSunday = (int)lastDayOfMonth.DayOfWeek;
+                startDate = lastDayOfMonth.AddDays(-daysFromSunday); // Start from Sunday
+            }
+        }
+        else
+        {
+            // Default behavior: current week (Sunday to today)
+            var today = DateTime.Today;
+            endDate = today.AddDays(1).AddSeconds(-1); // End of today
+            var daysFromSunday = (int)today.DayOfWeek;
+            startDate = today.AddDays(-daysFromSunday); // Start from Sunday
+        }
+        
+        return await GetAnalytics(startDate, endDate);
     }
 
     [HttpGet("analytics/monthly")]
-    public async Task<ActionResult<ExpenseAnalyticsDto>> GetMonthlyAnalytics()
+    public async Task<ActionResult<ExpenseAnalyticsDto>> GetMonthlyAnalytics([FromQuery] int? month, [FromQuery] int? year)
     {
-        var startDate = DateTime.Today.AddDays(-30);
-        return await GetAnalytics(startDate, DateTime.Today);
+        DateTime startDate, endDate;
+        
+        if (month.HasValue && year.HasValue)
+        {
+            // Get the entire month
+            startDate = new DateTime(year.Value, month.Value, 1);
+            var lastDayOfMonth = startDate.AddMonths(1).AddDays(-1);
+            
+            // If it's the current month, only include up to today (inclusive)
+            var today = DateTime.Today;
+            if (startDate <= today && lastDayOfMonth >= today)
+            {
+                endDate = today.AddDays(1).AddSeconds(-1); // End of today
+            }
+            else
+            {
+                endDate = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day of month
+            }
+        }
+        else
+        {
+            // Default behavior: current month from start to today
+            var today = DateTime.Today;
+            startDate = new DateTime(today.Year, today.Month, 1);
+            endDate = today.AddDays(1).AddSeconds(-1); // End of today
+        }
+        
+        return await GetAnalytics(startDate, endDate);
     }
 
     [HttpGet("categories/summary")]
-    public async Task<ActionResult<IEnumerable<CategorySummaryDto>>> GetCategorySummary([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+    public async Task<ActionResult<IEnumerable<CategorySummaryDto>>> GetCategorySummary([FromQuery] int? month, [FromQuery] int? year)
     {
-        var start = startDate ?? DateTime.Today.AddDays(-30);
-        var end = endDate ?? DateTime.Today;
+        DateTime start, end;
+        
+        if (month.HasValue && year.HasValue)
+        {
+            // Get the entire month
+            start = new DateTime(year.Value, month.Value, 1);
+            var lastDayOfMonth = start.AddMonths(1).AddDays(-1);
+            
+            // If it's the current month, only include up to today (inclusive)
+            var today = DateTime.Today;
+            if (start <= today && lastDayOfMonth >= today)
+            {
+                end = today.AddDays(1).AddSeconds(-1); // End of today
+            }
+            else
+            {
+                end = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day of month
+            }
+        }
+        else
+        {
+            // Default behavior: current month from start to today
+            var today = DateTime.Today;
+            start = new DateTime(today.Year, today.Month, 1);
+            end = today.AddDays(1).AddSeconds(-1); // End of today
+        }
         
         // Get all expenses and calculate on client side for SQLite compatibility
         var expenses = await _context.Expenses
-            .Where(e => e.Date >= start && e.Date <= end)
+            .Where(e => e.Date >= start && e.Date < end.AddSeconds(1))
             .ToListAsync();
             
         var totalAmount = expenses.Sum(e => e.Amount);
@@ -137,7 +229,7 @@ public class ExpenseController : ControllerBase
     private async Task<ActionResult<ExpenseAnalyticsDto>> GetAnalytics(DateTime startDate, DateTime endDate)
     {
         var expenses = await _context.Expenses
-            .Where(e => e.Date >= startDate && e.Date <= endDate)
+            .Where(e => e.Date >= startDate && e.Date < endDate.AddSeconds(1))
             .ToListAsync();
             
         if (!expenses.Any())

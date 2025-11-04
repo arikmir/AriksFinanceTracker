@@ -1,15 +1,27 @@
 .budget-container {
-  .spacer {
-    flex: 1 1 auto;
+  min-height: 100vh;
+  background-color: #fafafa;
+
+  mat-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+    }
   }
 
   .content {
     padding: 24px;
-    background: #f5f5f5;
-    min-height: calc(100vh - 64px);
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
   }
 
   // Loading State
@@ -23,12 +35,14 @@
 
     p {
       color: #666;
-      font-size: 1.1em;
+      font-size: 1rem;
     }
   }
 
   // Error Card
   .error-card {
+    max-width: 600px;
+    margin: 24px auto;
     background: #ffebee;
     border-left: 4px solid #f44336;
 
@@ -39,508 +53,435 @@
 
       mat-icon {
         font-size: 24px;
+        height: 24px;
+        width: 24px;
       }
 
       span {
         flex: 1;
         color: #d32f2f;
-        font-weight: 500;
       }
     }
   }
 
-  // Hero Card - Savings Progress
-  .savings-hero {
-    background: linear-gradient(135deg, #e8f5e8 0%, #f3e5f5 100%);
-    border-left: 6px solid #4caf50;
+  // Dashboard Grid
+  .dashboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
 
-    .hero-header {
+  // Overview Card
+  .overview-card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 12px;
+
+    .overview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+
+      h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #333;
+      }
+
+      .period-desc {
+        margin: 4px 0 0 0;
+        color: #666;
+        font-size: 0.875rem;
+      }
+
+      .menu-trigger {
+        margin: -8px -8px 0 0;
+      }
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+
+      .metric {
+        .metric-label {
+          display: block;
+          font-size: 0.875rem;
+          color: #666;
+          margin-bottom: 4px;
+        }
+
+        .metric-value {
+          display: block;
+          font-size: 1.75rem;
+          font-weight: 600;
+          line-height: 1.2;
+
+          &.income { color: #2196f3; }
+          &.spent { color: #f44336; }
+          &.saved { color: #4caf50; }
+        }
+
+        .metric-subtext {
+          display: block;
+          font-size: 0.875rem;
+          color: #4caf50;
+          font-weight: 500;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    .savings-progress {
+      margin-bottom: 16px;
+
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.875rem;
+        color: #666;
+      }
+
+      mat-progress-bar {
+        height: 8px;
+        border-radius: 4px;
+      }
+    }
+
+    .motivation-message {
       display: flex;
       align-items: center;
-      gap: 16px;
-      width: 100%;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      color: #2e7d32;
+      font-size: 0.875rem;
 
-      .hero-icon {
-        font-size: 32px;
+      mat-icon {
+        font-size: 20px;
+        height: 20px;
+        width: 20px;
         color: #4caf50;
       }
     }
-
-    .savings-overview {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-
-      .savings-main {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 24px;
-
-        @media (max-width: 768px) {
-          flex-direction: column;
-        }
-
-        .savings-amount {
-          h2 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #2e7d32;
-          }
-
-          .savings-rate {
-            font-size: 1.2em;
-            font-weight: 600;
-
-            &.success { color: #4caf50; }
-            &.primary { color: #2196f3; }
-            &.accent { color: #ff9800; }
-            &.warn { color: #f44336; }
-          }
-        }
-
-        .savings-target {
-          flex: 1;
-          min-width: 300px;
-
-          p {
-            margin: 0 0 8px 0;
-            font-weight: 500;
-            color: #666;
-          }
-
-          mat-progress-bar {
-            height: 12px;
-            border-radius: 6px;
-          }
-        }
-      }
-
-      .motivational-message {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 16px;
-        background: rgba(76, 175, 80, 0.1);
-        border-radius: 8px;
-        border-left: 4px solid #4caf50;
-
-        mat-icon {
-          color: #4caf50;
-          font-size: 28px;
-        }
-
-        p {
-          margin: 0;
-          font-size: 1.1em;
-          font-weight: 500;
-          color: #2e7d32;
-        }
-      }
-    }
-
-    .savings-goals {
-      margin-top: 24px;
-
-      h3 {
-        margin: 0 0 16px 0;
-        color: #2e7d32;
-        font-weight: 600;
-      }
-
-      .goals-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 16px;
-
-        .goal-item {
-          background: white;
-          padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-          .goal-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-
-            mat-icon {
-              color: #666;
-            }
-
-            h4 {
-              margin: 0;
-              flex: 1;
-              font-weight: 600;
-            }
-
-            .goal-amount {
-              font-size: 0.9em;
-              color: #666;
-            }
-
-            .achievement-icon {
-              font-size: 20px;
-            }
-          }
-
-          mat-progress-bar {
-            margin: 8px 0;
-            height: 8px;
-            border-radius: 4px;
-          }
-
-          .goal-message {
-            margin: 8px 0 0 0;
-            font-size: 0.9em;
-            color: #666;
-            font-style: italic;
-          }
-        }
-      }
-    }
   }
 
-  // Financial Health Card
-  .health-card {
-    .health-header {
+  // Categories Section
+  .categories-section {
+    .section-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      width: 100%;
+      align-items: center;
+      margin-bottom: 16px;
 
-      > div:first-child {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-
-        mat-icon {
-          font-size: 28px;
-        }
+      h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: #333;
       }
 
-      .health-grade {
-        text-align: center;
-
-        .grade-label {
-          display: block;
-          font-size: 0.8em;
-          color: #666;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-        .grade-value {
-          display: block;
-          font-size: 1.5em;
-          font-weight: 700;
-          margin-top: 4px;
-
-          &.success { color: #4caf50; }
-          &.primary { color: #2196f3; }
-          &.accent { color: #ff9800; }
-          &.warn { color: #f44336; }
-        }
+      .days-left {
+        color: #666;
+        font-size: 0.875rem;
       }
     }
 
-    .health-content {
+    .categories-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-top: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
 
       @media (max-width: 768px) {
         grid-template-columns: 1fr;
       }
-
-      .score-section {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-
-        .score-circle {
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          padding: 20px;
-          background: #f5f5f5;
-          border-radius: 50%;
-          width: 120px;
-          height: 120px;
-          margin: 0 auto;
-
-          .score-value {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #2196f3;
-          }
-
-          .score-max {
-            font-size: 1em;
-            color: #666;
-          }
-        }
-
-        .achievements {
-          h4 {
-            margin: 0 0 8px 0;
-            color: #666;
-          }
-
-          .achievement-list {
-            mat-chip-set {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 4px;
-            }
-          }
-        }
-      }
-
-      .recommendations {
-        h4 {
-          margin: 0 0 12px 0;
-          color: #666;
-        }
-
-        ul {
-          margin: 0;
-          padding-left: 20px;
-
-          li {
-            margin-bottom: 8px;
-            color: #555;
-            line-height: 1.4;
-          }
-        }
-      }
     }
   }
 
-  // Period Info Card
-  .period-card {
-    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  // Category Card
+  .category-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    transition: all 0.2s ease;
+    border: 1px solid #e0e0e0;
 
-    .period-info {
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      
+      .edit-button {
+        opacity: 1;
+      }
+    }
+
+    &.warning {
+      border-color: #ff9800;
+      background-color: #fff8e1;
+    }
+
+    &.exceeded {
+      border-color: #f44336;
+      background-color: #ffebee;
+    }
+
+    mat-card-content {
+      padding: 16px !important;
+    }
+
+    .category-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
 
-      @media (max-width: 768px) {
-        flex-direction: column;
-        gap: 16px;
-        text-align: center;
-      }
-
-      .period-details {
-        h3 {
-          margin: 0 0 8px 0;
-          color: #1976d2;
-          font-weight: 600;
-        }
-
-        p {
-          margin: 0;
-          color: #666;
-          line-height: 1.4;
-        }
-      }
-
-      .period-stats {
-        display: flex;
-        gap: 32px;
-
-        .stat {
-          text-align: center;
-
-          .stat-value {
-            display: block;
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #1976d2;
-          }
-
-          .stat-label {
-            display: block;
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 4px;
-          }
-        }
-      }
-    }
-  }
-
-  // Categories Grid
-  .categories-card {
-    .categories-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 16px;
-
-      .category-item {
-        padding: 16px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        background: white;
-        transition: box-shadow 0.2s;
-
-        &:hover {
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        &.essential {
-          border-left: 4px solid #4caf50;
-          background: #f8fff8;
-        }
-
-        .category-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
-
-          mat-icon {
-            color: #666;
-          }
-
-          .category-info {
-            flex: 1;
-
-            h4 {
-              margin: 0;
-              font-weight: 600;
-            }
-
-            .category-type {
-              font-size: 0.8em;
-              color: #4caf50;
-              font-weight: 500;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-          }
-
-          .category-status {
-            .status-badge {
-              padding: 4px 8px;
-              border-radius: 12px;
-              font-size: 0.8em;
-              font-weight: 500;
-              text-transform: uppercase;
-
-              &.status-green {
-                background: #e8f5e8;
-                color: #2e7d32;
-              }
-
-              &.status-blue {
-                background: #e3f2fd;
-                color: #1976d2;
-              }
-
-              &.status-yellow {
-                background: #fff8e1;
-                color: #f57c00;
-              }
-
-              &.status-orange {
-                background: #fce4ec;
-                color: #c2185b;
-              }
-            }
-          }
-        }
-
-        .category-amounts {
-          margin-bottom: 12px;
-
-          .amount-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 0.9em;
-
-            .remaining {
-              color: #4caf50;
-              font-weight: 500;
-            }
-
-            .percentage {
-              font-weight: 600;
-            }
-          }
-        }
-
-        mat-progress-bar {
-          margin-bottom: 12px;
-          height: 8px;
-          border-radius: 4px;
-        }
-
-        .daily-recommendation {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px;
-          background: #f5f5f5;
-          border-radius: 4px;
-          font-size: 0.9em;
-          color: #666;
-
-          mat-icon {
-            font-size: 16px;
-          }
-        }
-      }
-    }
-  }
-
-  // Celebration Card
-  .celebration-card {
-    background: linear-gradient(135deg, #fff9c4 0%, #f8bbd9 100%);
-    border-left: 6px solid #ff9800;
-
-    .celebration-content {
-      .celebration-main {
+      .category-info {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 8px;
+        flex: 1;
 
-        .celebration-icon {
-          font-size: 48px;
-          color: #ff9800;
-        }
-
-        h3 {
-          margin: 0 0 8px 0;
-          color: #f57c00;
-          font-weight: 700;
-        }
-
-        p {
-          margin: 0;
+        mat-icon {
+          font-size: 20px;
+          height: 20px;
+          width: 20px;
           color: #666;
-          line-height: 1.4;
+        }
+
+        .category-name {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .essential-chip {
+          font-size: 0.75rem;
+          height: 20px;
+          min-height: 20px;
+          line-height: 20px;
+          padding: 0 8px;
+          background: #e3f2fd;
+          color: #1976d2;
         }
       }
 
-      .celebration-achievements {
-        h4 {
-          margin: 0 0 8px 0;
-          color: #f57c00;
-        }
+      .edit-button {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
 
-        mat-chip-set {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
+        mat-icon {
+          font-size: 18px;
+          height: 18px;
+          width: 18px;
         }
       }
     }
+
+    .budget-amounts {
+      margin-bottom: 8px;
+
+      .amount-row {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+
+        .spent {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .limit {
+          font-size: 1rem;
+          color: #666;
+        }
+      }
+
+      .percentage {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #666;
+      }
+    }
+
+    mat-progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      margin-bottom: 12px;
+    }
+
+    .category-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+
+      .remaining {
+        color: #666;
+
+        &.negative {
+          color: #f44336;
+          font-weight: 500;
+        }
+      }
+
+      .status-chip {
+        font-size: 0.75rem;
+        height: 22px;
+        min-height: 22px;
+        line-height: 22px;
+        padding: 0 8px;
+
+        &.status-green {
+          background: #e8f5e8;
+          color: #2e7d32;
+        }
+
+        &.status-blue {
+          background: #e3f2fd;
+          color: #1565c0;
+        }
+
+        &.status-yellow {
+          background: #fff8e1;
+          color: #f57c00;
+        }
+
+        &.status-orange {
+          background: #fce4ec;
+          color: #c62828;
+        }
+      }
+    }
+  }
+
+  // Achievements Card
+  .achievements-card {
+    background: linear-gradient(135deg, #fff9c4 0%, #fff3e0 100%);
+    border: 1px solid #ffd54f;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+
+    .achievements-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      mat-icon {
+        font-size: 32px;
+        height: 32px;
+        width: 32px;
+        color: #ff9800;
+      }
+
+      h3 {
+        margin: 0;
+        color: #f57c00;
+        font-weight: 500;
+      }
+    }
+
+    .achievements-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+
+      .achievement-chip {
+        background: #fff;
+        border: 1px solid #ffb74d;
+
+        mat-icon {
+          font-size: 16px;
+          height: 16px;
+          width: 16px;
+          color: #ff9800;
+          margin-right: 4px;
+        }
+      }
+    }
+
+    .dismiss-button {
+      color: #f57c00;
+    }
+  }
+}
+
+// Dialog Styles
+.health-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px 0;
+
+  .score-circle {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    padding: 24px;
+    background: #f5f5f5;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 16px;
+
+    .score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1976d2;
+    }
+
+    .score-label {
+      font-size: 1rem;
+      color: #666;
+    }
+  }
+
+  .grade {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+
+    &.excellent { color: #4caf50; }
+    &.good { color: #2196f3; }
+    &.fair { color: #ff9800; }
+    &.improving { color: #9e9e9e; }
+  }
+}
+
+.health-message {
+  text-align: center;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.recommendations {
+  h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 20px;
+
+    li {
+      margin-bottom: 8px;
+      color: #666;
+    }
+  }
+}
+
+// Snackbar
+::ng-deep {
+  .error-snackbar {
+    background: #f44336;
+    color: white;
   }
 }

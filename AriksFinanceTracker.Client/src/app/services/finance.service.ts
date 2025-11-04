@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Expense, ExpenseAnalytics, DailyExpense, CategorySummary } from '../models/expense.model';
 import { Income } from '../models/income.model';
 import { DashboardData } from '../models/dashboard.model';
@@ -14,8 +15,11 @@ export class FinanceService {
 
   constructor(private http: HttpClient) { }
 
-  getExpenses(): Observable<Expense[]> {
-    return this.http.get<Expense[]>(`${this.apiUrl}/expense`);
+  getExpenses(month?: number, year?: number): Observable<Expense[]> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month.toString());
+    if (year) params = params.set('year', year.toString());
+    return this.http.get<Expense[]>(`${this.apiUrl}/expense`, { params });
   }
 
   getExpense(id: number): Observable<Expense> {
@@ -75,18 +79,28 @@ export class FinanceService {
     return this.http.get<DailyExpense[]>(`${this.apiUrl}/expense/analytics/daily`, { params });
   }
 
-  getWeeklyExpenseAnalytics(): Observable<ExpenseAnalytics> {
-    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/weekly`);
-  }
-
-  getMonthlyExpenseAnalytics(): Observable<ExpenseAnalytics> {
-    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/monthly`);
-  }
-
-  getCategorySummary(startDate?: Date, endDate?: Date): Observable<CategorySummary[]> {
+  getWeeklyExpenseAnalytics(date?: Date): Observable<ExpenseAnalytics> {
     let params = new HttpParams();
-    if (startDate) params = params.set('startDate', startDate.toISOString());
-    if (endDate) params = params.set('endDate', endDate.toISOString());
+    if (date) {
+      params = params.set('month', (date.getMonth() + 1).toString());
+      params = params.set('year', date.getFullYear().toString());
+    }
+    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/weekly`, { params });
+  }
+
+  getMonthlyExpenseAnalytics(date?: Date): Observable<ExpenseAnalytics> {
+    let params = new HttpParams();
+    if (date) {
+      params = params.set('month', (date.getMonth() + 1).toString());
+      params = params.set('year', date.getFullYear().toString());
+    }
+    return this.http.get<ExpenseAnalytics>(`${this.apiUrl}/expense/analytics/monthly`, { params });
+  }
+
+  getCategorySummary(month?: number, year?: number): Observable<CategorySummary[]> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month.toString());
+    if (year) params = params.set('year', year.toString());
     
     return this.http.get<CategorySummary[]>(`${this.apiUrl}/expense/categories/summary`, { params });
   }
@@ -109,10 +123,64 @@ export class FinanceService {
   }
 
   getSavingsCelebration(): Observable<SavingsCelebration> {
-    return this.http.get<SavingsCelebration>(`${this.apiUrl}/budget/savings-celebration`);
+    return this.http.get<SavingsCelebration>(`${this.apiUrl}/budget/savings-celebration`).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getAlerts(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/budget/alerts`);
   }
+
+  getBudgetLimits(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/budget/limits`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  updateCategoryLimit(category: number, newLimit: number): Observable<any> {
+    return this.http.put(`${this.apiUrl}/budget/category/${category}/limit`, { newLimit }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Total Savings API methods
+  getTotalSavings(): Observable<TotalSavings[]> {
+    return this.http.get<TotalSavings[]>(`${this.apiUrl}/totalsavings`);
+  }
+
+  getTotalSavingsById(id: number): Observable<TotalSavings> {
+    return this.http.get<TotalSavings>(`${this.apiUrl}/totalsavings/${id}`);
+  }
+
+  getMonthlySavings(month: number, year: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/totalsavings/monthly/${year}/${month}`);
+  }
+
+  createTotalSavings(savings: TotalSavings): Observable<TotalSavings> {
+    return this.http.post<TotalSavings>(`${this.apiUrl}/totalsavings`, savings);
+  }
+
+  updateTotalSavings(id: number, savings: TotalSavings): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/totalsavings/${id}`, savings);
+  }
+
+  deleteTotalSavings(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/totalsavings/${id}`);
+  }
+
+  private handleError(error: any): Observable<never> {
+    console.error('An error occurred:', error);
+    return throwError(() => error);
+  }
+}
+
+export interface TotalSavings {
+  id?: number;
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

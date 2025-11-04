@@ -29,7 +29,10 @@ public class DashboardController : ControllerBase
         var expensesByCategory = await _context.Expenses
             .Where(e => e.Date.Month == currentMonth && e.Date.Year == currentYear)
             .GroupBy(e => e.Category)
-            .Select(g => new { Category = g.Key, Amount = g.Sum(e => e.Amount) })
+            .Select(g => new { 
+                Category = g.Key.ToString(), 
+                Amount = g.Sum(e => e.Amount) 
+            })
             .ToListAsync();
         
         return Ok(new 

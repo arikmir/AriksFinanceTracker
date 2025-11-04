@@ -1,6 +1,6 @@
 <div class="budget-container">
   <mat-toolbar color="primary">
-    <h1>💰 Budget & Savings Dashboard</h1>
+    <h1>Budget Dashboard</h1>
     <span class="spacer"></span>
     <button mat-icon-button (click)="refreshData()" matTooltip="Refresh Data">
       <mat-icon>refresh</mat-icon>
@@ -20,206 +20,135 @@
     </mat-card>
 
     <!-- Success Content -->
-    <div *ngIf="!errorMessage && budgetStatus">
-      <!-- Savings Progress Hero Card (TOP PRIORITY) -->
-      <mat-card class="hero-card savings-hero">
-        <mat-card-header>
-          <div class="hero-header">
-            <mat-icon class="hero-icon">savings</mat-icon>
+    <div *ngIf="!errorMessage && budgetStatus" class="dashboard-grid">
+      <!-- Overview Card -->
+      <mat-card class="overview-card">
+        <mat-card-content>
+          <div class="overview-header">
             <div>
-              <mat-card-title>🎯 Savings Progress</mat-card-title>
-              <mat-card-subtitle>{{ budgetStatus.currentPeriod }}</mat-card-subtitle>
+              <h2>{{ budgetStatus.currentPeriod }}</h2>
+              <p class="period-desc">{{ budgetStatus.periodDescription }}</p>
             </div>
+            <button mat-icon-button [matMenuTriggerFor]="menu" class="menu-trigger">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="viewFinancialHealth()">
+                <mat-icon>insights</mat-icon>
+                <span>Financial Health Score</span>
+              </button>
+              <button mat-menu-item (click)="viewAchievements()">
+                <mat-icon>emoji_events</mat-icon>
+                <span>Achievements</span>
+              </button>
+            </mat-menu>
           </div>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="savings-overview">
-            <div class="savings-main">
-              <div class="savings-amount">
-                <h2>{{ formatCurrency(budgetStatus.actualSavings) }}</h2>
-                <span class="savings-rate" [class]="getHealthGradeColor(financialHealth?.grade || '')">
-                  {{ formatPercentage(budgetStatus.savingsRate) }} saved this month
-                </span>
-              </div>
-              <div class="savings-target">
-                <p>Target: {{ formatCurrency(budgetStatus.savingsTarget) }}</p>
-                <mat-progress-bar 
-                  mode="determinate" 
-                  [value]="(budgetStatus.actualSavings / budgetStatus.savingsTarget) * 100"
-                  [color]="getProgressBarColor((budgetStatus.actualSavings / budgetStatus.savingsTarget) * 100)">
-                </mat-progress-bar>
-              </div>
+
+          <div class="metrics-grid">
+            <div class="metric">
+              <span class="metric-label">Income</span>
+              <span class="metric-value income">{{ formatCurrency(budgetStatus.monthlyIncome) }}</span>
             </div>
-            <div class="motivational-message">
-              <mat-icon>{{ budgetStatus.savingsRate >= 20 ? 'celebration' : 'trending_up' }}</mat-icon>
-              <p>{{ budgetStatus.motivationalMessage }}</p>
+            <div class="metric">
+              <span class="metric-label">Spent</span>
+              <span class="metric-value spent">{{ formatCurrency(budgetStatus.totalSpent) }}</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Saved</span>
+              <span class="metric-value saved">{{ formatCurrency(budgetStatus.actualSavings) }}</span>
+              <span class="metric-subtext">{{ formatPercentage(budgetStatus.savingsRate) }} rate</span>
             </div>
           </div>
 
-          <!-- Individual Savings Goals -->
-          <div class="savings-goals">
-            <h3>Savings Breakdown</h3>
-            <div class="goals-grid">
-              <div *ngFor="let goal of budgetStatus.savingsProgress" class="goal-item">
-                <div class="goal-header">
-                  <mat-icon>{{ getSavingsIcon(goal.name) }}</mat-icon>
-                  <div>
-                    <h4>{{ goal.name }}</h4>
-                    <span class="goal-amount">{{ formatCurrency(goal.actual) }} / {{ formatCurrency(goal.target) }}</span>
-                  </div>
-                  <mat-icon *ngIf="goal.isAchieved" color="accent" class="achievement-icon">star</mat-icon>
-                </div>
-                <mat-progress-bar 
-                  mode="determinate" 
-                  [value]="goal.progress"
-                  [color]="getProgressBarColor(goal.progress)">
-                </mat-progress-bar>
-                <p class="goal-message">{{ goal.motivationalMessage }}</p>
-              </div>
+          <div class="savings-progress">
+            <div class="progress-header">
+              <span>Savings Goal</span>
+              <span>{{ formatCurrency(budgetStatus.actualSavings) }} / {{ formatCurrency(budgetStatus.savingsTarget) }}</span>
             </div>
+            <mat-progress-bar 
+              mode="determinate" 
+              [value]="(budgetStatus.actualSavings / budgetStatus.savingsTarget) * 100"
+              [color]="budgetStatus.savingsRate >= 20 ? 'primary' : 'accent'">
+            </mat-progress-bar>
+          </div>
+
+          <div class="motivation-message" *ngIf="budgetStatus.savingsRate >= 15">
+            <mat-icon>tips_and_updates</mat-icon>
+            <span>{{ getMotivationalMessage() }}</span>
           </div>
         </mat-card-content>
       </mat-card>
 
-      <!-- Financial Health Card -->
-      <mat-card class="health-card" *ngIf="financialHealth">
-        <mat-card-header>
-          <div class="health-header">
-            <mat-icon [color]="getHealthGradeColor(financialHealth.grade)">health_and_safety</mat-icon>
-            <div>
-              <mat-card-title>Financial Health Score</mat-card-title>
-              <mat-card-subtitle>{{ financialHealth.message }}</mat-card-subtitle>
-            </div>
-            <div class="health-grade">
-              <span class="grade-label">Grade</span>
-              <span class="grade-value" [class]="getHealthGradeColor(financialHealth.grade)">
-                {{ financialHealth.grade }}
-              </span>
-            </div>
-          </div>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="health-content">
-            <div class="score-section">
-              <div class="score-circle">
-                <span class="score-value">{{ financialHealth.score.toFixed(0) }}</span>
-                <span class="score-max">/100</span>
-              </div>
-              <div class="achievements">
-                <h4>🏆 Achievements</h4>
-                <div class="achievement-list">
-                  <mat-chip-set>
-                    <mat-chip *ngFor="let achievement of financialHealth.achievements">
-                      {{ achievement }}
-                    </mat-chip>
-                  </mat-chip-set>
-                </div>
-              </div>
-            </div>
-            <div class="recommendations">
-              <h4>💡 Recommendations</h4>
-              <ul>
-                <li *ngFor="let recommendation of financialHealth.recommendations">
-                  {{ recommendation }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+      <!-- Category Budgets -->
+      <div class="categories-section">
+        <div class="section-header">
+          <h3>Category Budgets</h3>
+          <span class="days-left">{{ budgetStatus.daysLeftInMonth }} days left</span>
+        </div>
 
-      <!-- Period Info Card -->
-      <mat-card class="period-card">
-        <mat-card-content>
-          <div class="period-info">
-            <div class="period-details">
-              <h3>{{ budgetStatus.currentPeriod }}</h3>
-              <p>{{ budgetStatus.periodDescription }}</p>
-            </div>
-            <div class="period-stats">
-              <div class="stat">
-                <span class="stat-value">{{ formatCurrency(budgetStatus.monthlyIncome) }}</span>
-                <span class="stat-label">Monthly Income</span>
-              </div>
-              <div class="stat">
-                <span class="stat-value">{{ budgetStatus.daysLeftInMonth }}</span>
-                <span class="stat-label">Days Left</span>
-              </div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Category Budget Grid -->
-      <mat-card class="categories-card">
-        <mat-card-header>
-          <mat-card-title>📊 Category Budgets</mat-card-title>
-          <mat-card-subtitle>Track your spending across all categories</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="categories-grid">
-            <div *ngFor="let category of budgetStatus.categoryBudgets" 
-                 class="category-item"
-                 [class.essential]="category.isEssential">
+        <div class="categories-grid">
+          <mat-card *ngFor="let category of budgetStatus.categoryBudgets" 
+                   class="category-card"
+                   [class.warning]="category.percentageUsed >= 80"
+                   [class.exceeded]="category.percentageUsed >= 100">
+            <mat-card-content>
               <div class="category-header">
-                <mat-icon>{{ getCategoryIcon(category.categoryName) }}</mat-icon>
                 <div class="category-info">
-                  <h4>{{ category.categoryName }}</h4>
-                  <span class="category-type" *ngIf="category.isEssential">Essential</span>
+                  <mat-icon>{{ getCategoryIcon(category.categoryName) }}</mat-icon>
+                  <span class="category-name">{{ category.categoryName }}</span>
+                  <mat-chip *ngIf="category.isEssential" class="essential-chip">Essential</mat-chip>
                 </div>
-                <div class="category-status">
-                  <span class="status-badge" [class]="'status-' + category.statusColor">
-                    {{ category.status }}
-                  </span>
-                </div>
+                <button mat-icon-button 
+                        (click)="editBudgetLimit(category)" 
+                        class="edit-button"
+                        matTooltip="Edit budget limit">
+                  <mat-icon>edit</mat-icon>
+                </button>
               </div>
-              
-              <div class="category-amounts">
+
+              <div class="budget-amounts">
                 <div class="amount-row">
-                  <span>Spent: {{ formatCurrency(category.spent) }}</span>
-                  <span>Limit: {{ formatCurrency(category.limit) }}</span>
+                  <span class="spent">{{ formatCurrency(category.spent) }}</span>
+                  <span class="limit">/ {{ formatCurrency(category.limit) }}</span>
                 </div>
-                <div class="amount-row">
-                  <span class="remaining">Remaining: {{ formatCurrency(category.remaining) }}</span>
-                  <span class="percentage">{{ formatPercentage(category.percentageUsed) }}</span>
-                </div>
+                <span class="percentage">{{ formatPercentage(category.percentageUsed) }}</span>
               </div>
 
               <mat-progress-bar 
                 mode="determinate" 
-                [value]="category.percentageUsed"
-                [color]="category.statusColor === 'green' ? 'primary' : category.statusColor === 'yellow' ? 'accent' : 'warn'">
+                [value]="Math.min(100, category.percentageUsed)"
+                [color]="getProgressColor(category.percentageUsed)">
               </mat-progress-bar>
 
-              <div class="daily-recommendation" *ngIf="category.dailyRecommendation > 0">
-                <mat-icon>schedule</mat-icon>
-                <span>Daily budget: {{ formatCurrency(category.dailyRecommendation) }}</span>
-              </div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Celebration Card -->
-      <mat-card class="celebration-card" *ngIf="savingsCelebration && budgetStatus.savingsRate >= 15">
-        <mat-card-content>
-          <div class="celebration-content">
-            <div class="celebration-main">
-              <mat-icon class="celebration-icon">celebration</mat-icon>
-              <div>
-                <h3>{{ savingsCelebration.message }}</h3>
-                <p>{{ savingsCelebration.encouragement }}</p>
-              </div>
-            </div>
-            <div class="celebration-achievements" *ngIf="savingsCelebration.achievements.length > 0">
-              <h4>🏅 Badges Earned</h4>
-              <mat-chip-set>
-                <mat-chip *ngFor="let achievement of savingsCelebration.achievements" color="accent">
-                  {{ achievement }}
+              <div class="category-footer">
+                <span class="remaining" [class.negative]="category.remaining < 0">
+                  {{ category.remaining >= 0 ? 'Remaining' : 'Over' }}: {{ formatCurrency(Math.abs(category.remaining)) }}
+                </span>
+                <mat-chip class="status-chip" [class]="'status-' + category.statusColor">
+                  {{ category.status }}
                 </mat-chip>
-              </mat-chip-set>
-            </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Achievements Section (Dynamic) -->
+      <mat-card class="achievements-card" *ngIf="achievements && achievements.length > 0">
+        <mat-card-content>
+          <div class="achievements-header">
+            <mat-icon>celebration</mat-icon>
+            <h3>{{ achievementMessage }}</h3>
           </div>
+          <div class="achievements-list">
+            <mat-chip *ngFor="let achievement of achievements" class="achievement-chip">
+              <mat-icon>star</mat-icon>
+              {{ achievement }}
+            </mat-chip>
+          </div>
+          <button mat-button (click)="dismissAchievements()" class="dismiss-button">
+            Dismiss
+          </button>
         </mat-card-content>
       </mat-card>
     </div>
@@ -228,6 +157,49 @@
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
     <mat-spinner></mat-spinner>
-    <p>Loading your budget dashboard...</p>
+    <p>Loading your budget...</p>
   </div>
 </div>
+
+<!-- Budget Edit Dialog Template -->
+<ng-template #budgetEditDialog>
+  <h2 mat-dialog-title>Edit Budget Limit</h2>
+  <mat-dialog-content>
+    <p>Adjust the monthly budget limit for {{ editingCategory?.categoryName }}</p>
+    <mat-form-field appearance="outline">
+      <mat-label>Monthly Limit</mat-label>
+      <input matInput type="number" [(ngModel)]="newBudgetLimit" min="0" step="10">
+      <span matPrefix>$</span>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" (click)="saveBudgetLimit()">Save</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Financial Health Dialog -->
+<ng-template #healthDialog>
+  <h2 mat-dialog-title>Financial Health Score</h2>
+  <mat-dialog-content *ngIf="financialHealth">
+    <div class="health-score">
+      <div class="score-circle">
+        <span class="score">{{ financialHealth.score.toFixed(0) }}</span>
+        <span class="score-label">/ 100</span>
+      </div>
+      <h3 class="grade" [class]="getHealthGradeColor(financialHealth.grade)">
+        {{ financialHealth.grade }}
+      </h3>
+    </div>
+    <p class="health-message">{{ financialHealth.message }}</p>
+    <div class="recommendations" *ngIf="financialHealth.recommendations.length > 0">
+      <h4>Recommendations:</h4>
+      <ul>
+        <li *ngFor="let rec of financialHealth.recommendations">{{ rec }}</li>
+      </ul>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close>Close</button>
+  </mat-dialog-actions>
+</ng-template>
