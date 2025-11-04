@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,8 +12,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<FinanceContext>(options =>
     options.UseSqlite("Data Source=ariks_finance.db"));
 
-// Add Budget Service
+// Add Services
 builder.Services.AddScoped<AriksFinanceTracker.Api.Services.BudgetService>();
+builder.Services.AddScoped<AriksFinanceTracker.Api.Services.IDatabaseBackupService, AriksFinanceTracker.Api.Services.DatabaseBackupService>();
+builder.Services.AddHostedService<AriksFinanceTracker.Api.Services.AutoBackupService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -51,6 +55,7 @@ public class FinanceContext : DbContext
 {
     public FinanceContext(DbContextOptions<FinanceContext> options) : base(options) { }
     
+    public DbSet<SpendingCategory> SpendingCategories { get; set; }
     public DbSet<Expense> Expenses { get; set; }
     public DbSet<Income> Incomes { get; set; }
     public DbSet<FinancialPeriod> FinancialPeriods { get; set; }
@@ -61,30 +66,29 @@ public class FinanceContext : DbContext
     public DbSet<TotalSavings> TotalSavings { get; set; }
 }
 
-public enum ExpenseCategory
+public class SpendingCategory
 {
-    FoodAndDrinks,
-    Groceries,
-    Shopping,
-    Transport,
-    Entertainment,
-    Utilities,
-    HealthAndFitness,
-    Home,
-    Savings,
-    Repayment,
-    Miscellaneous,
-    Mortgage,
-    Rent
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Icon { get; set; }
+    public bool IsSystem { get; set; }
+    public bool IsEssentialDefault { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class Expense
 {
     public int Id { get; set; }
+    [Required]
     public DateTime Date { get; set; }
+    [Required]
     public decimal Amount { get; set; }
-    public ExpenseCategory Category { get; set; }
-    public string Description { get; set; }
+    [Required]
+    public int CategoryId { get; set; }
+    public SpendingCategory? Category { get; set; }
+    [Required]
+    public string Description { get; set; } = string.Empty;
     public string? PaymentMethod { get; set; }
     public string? Location { get; set; }
     public string? Tags { get; set; }
@@ -107,9 +111,17 @@ public class ExpenseAnalyticsDto
     public decimal TotalAmount { get; set; }
     public int TransactionCount { get; set; }
     public decimal AverageAmount { get; set; }
-    public Dictionary<ExpenseCategory, decimal> CategoryBreakdown { get; set; } = new();
+    public List<CategoryBreakdownDto> CategoryBreakdown { get; set; } = new();
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+}
+
+public class CategoryBreakdownDto
+{
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public int TransactionCount { get; set; }
 }
 
 public class DailyExpenseDto
@@ -122,8 +134,16 @@ public class DailyExpenseDto
 
 public class CategorySummaryDto
 {
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
     public string CategoryName { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int TransactionCount { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+public class PaymentMethodSummaryDto
+{
+    public string PaymentMethod { get; set; } = "Unspecified";
     public decimal TotalAmount { get; set; }
     public int TransactionCount { get; set; }
     public decimal Percentage { get; set; }
@@ -166,7 +186,8 @@ public class FinancialPeriod
 public class BudgetLimit
 {
     public int Id { get; set; }
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
+    public SpendingCategory Category { get; set; } = null!;
     public decimal MonthlyLimit { get; set; }
     public int FinancialPeriodId { get; set; }
     public FinancialPeriod FinancialPeriod { get; set; }
@@ -190,7 +211,8 @@ public class SavingsGoal
 public class SpendingAlert
 {
     public int Id { get; set; }
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
     public AlertType Type { get; set; }
     public string Message { get; set; }
     
@@ -238,7 +260,7 @@ public class BudgetStatusDto
 
 public class CategoryBudgetDto
 {
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
     public string CategoryName { get; set; }
     public decimal Limit { get; set; }
     public decimal Spent { get; set; }
@@ -247,6 +269,9 @@ public class CategoryBudgetDto
     public bool IsEssential { get; set; }
     public string Status { get; set; } // Great, Good, Warning, Critical
     public string StatusColor { get; set; } // green, blue, yellow, orange
+    public bool IsCustom { get; set; }
+    public string? Icon { get; set; }
+    public decimal DailyRecommendation { get; set; }
 }
 
 public class SavingsProgressDto
@@ -283,10 +308,21 @@ public class SpendingCheckDto
 
 public class BudgetLimitDto
 {
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
     public string CategoryName { get; set; }
     public decimal MonthlyLimit { get; set; }
     public bool IsEssential { get; set; }
+    public bool IsCustom { get; set; }
+    public string? Icon { get; set; }
+}
+
+public class SpendingCategoryDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Icon { get; set; }
+    public bool IsCustom { get; set; }
+    public bool IsEssentialDefault { get; set; }
 }
 
 public class TotalSavings

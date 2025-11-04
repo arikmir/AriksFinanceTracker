@@ -8,7 +8,8 @@ import { DataRefreshService } from '../../services/data-refresh.service';
 import { MonthSelectionService } from '../../services/month-selection.service';
 import { DashboardData } from '../../models/dashboard.model';
 import { Income } from '../../models/income.model';
-import { Expense, ExpenseCategory, ExpenseCategoryLabels, ExpenseCategoryIcons } from '../../models/expense.model';
+import { Expense, SpendingCategoryOption } from '../../models/expense.model';
+import { CategoryBudget } from '../../models/budget.model';
 import { MonthPickerDialogComponent } from './month-picker-dialog.component';
 import { DateUtils } from '../../utils/date.utils';
 
@@ -26,7 +27,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     expensesByCategory: []
   };
 
-  budgetCategories: any[] = [];
+  budgetCategories: CategoryBudget[] = [];
+  categoryOptions: SpendingCategoryOption[] = [];
 
   private subscriptions: Subscription = new Subscription();
 
@@ -52,7 +54,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
                  'July', 'August', 'September', 'October', 'November', 'December'];
   
   // Categories
-  categories = Object.values(ExpenseCategory).filter(v => typeof v === 'number') as ExpenseCategory[];
   paymentMethods = ['Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Digital Wallet'];
 
   constructor(
@@ -66,7 +67,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.expenseForm = this.fb.group({
       amount: [null, [Validators.required, Validators.min(0.01)]],
       date: [DateUtils.getCurrentAustralianDate(), Validators.required],
-      category: [ExpenseCategory.Miscellaneous, Validators.required],
+      categoryId: [null, Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       paymentMethod: ['Credit Card'],
       location: [''],
@@ -95,6 +96,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadDashboard();
     this.loadTotalSavings();
     this.loadBudgetCategories();
+    this.loadCategoryOptions();
     
     this.subscriptions.add(
       this.dataRefreshService.incomeUpdated$.subscribe(() => {
@@ -143,12 +145,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadBudgetCategories(): void {
     this.financeService.getBudgetStatus().subscribe({
       next: (budgetStatus) => {
-        // Convert API budget data to dashboard format with icons
-        this.budgetCategories = budgetStatus.categoryBudgets.map(category => ({
-          name: category.categoryName,
-          amount: category.limit,
-          icon: this.getBudgetCategoryIcon(category.categoryName)
-        }));
+        this.budgetCategories = budgetStatus.categoryBudgets;
         console.log('Budget categories loaded:', this.budgetCategories);
       },
       error: (error) => {
@@ -159,27 +156,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  getBudgetCategoryIcon(categoryName: string): string {
-    const iconMap: { [key: string]: string } = {
-      'Mortgage': 'home',
-      'Rent': 'apartment', 
-      'Groceries': 'shopping_cart',
-      'Transport': 'directions_car',
-      'Utilities': 'power',
-      'Food & Drinks': 'restaurant',
-      'Shopping': 'shopping_bag',
-      'Entertainment': 'movie',
-      'Health & Fitness': 'fitness_center',
-      'Home': 'home_repair_service',
-      'Miscellaneous': 'category',
-      'Savings': 'savings',
-      'Repayment': 'payment'
-    };
-    return iconMap[categoryName] || 'category';
-  }
+  loadCategoryOptions(): void {
+    this.financeService.getSpendingCategories().subscribe({
+      next: (categories) => {
+        this.categoryOptions = categories.map(category => ({
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+          isCustom: category.isCustom,
+          isEssential: category.isEssentialDefault,
+          isEssentialDefault: category.isEssentialDefault
+        }));
 
-  getCategoryIcon(category: ExpenseCategory): string {
-    return ExpenseCategoryIcons[category];
+        if (!this.expenseForm.get('categoryId')?.value && this.categoryOptions.length > 0) {
+          this.expenseForm.patchValue({ categoryId: this.categoryOptions[0].id });
+        }
+      },
+      error: (error) => {
+        console.error('Error loading spending categories:', error);
+        this.categoryOptions = [];
+      }
+    });
   }
 
   getSavingsColor(): string {
@@ -194,37 +191,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getExpensePercentage(): number {
-    const totalBudget = this.budgetCategories.reduce((sum, category) => sum + category.amount, 0);
+    const totalBudget = this.budgetCategories.reduce((sum, category) => sum + category.limit, 0);
+    if (totalBudget <= 0) {
+      return 0;
+    }
     return this.dashboardData.totalExpenses > 0 ? Math.min((this.dashboardData.totalExpenses / totalBudget) * 100, 100) : 0;
   }
 
-  getCategorySpentAmount(categoryName: string): number {
-    // Map budget category names to expense category enum names (from backend)
-    const categoryMapping: { [key: string]: string[] } = {
-      'Mortgage': ['Mortgage'],
-      'Rent': ['Rent'],
-      'Groceries': ['Groceries'],
-      'Transport': ['Transport'],
-      'Utilities': ['Utilities'],
-      'Subscriptions': ['Entertainment'], // Map subscriptions to Entertainment enum
-      'Food & Drinks': ['FoodAndDrinks'], // Backend uses enum name without spaces
-      'Shopping': ['Shopping'],
-      'Entertainment': ['Entertainment'],
-      'Health & Fitness': ['HealthAndFitness'], // Backend uses enum name without spaces
-      'Home': ['Home'],
-      'Miscellaneous': ['Miscellaneous']
-    };
-
-    const mappedCategories = categoryMapping[categoryName] || [categoryName];
-    
+  getCategorySpentAmount(categoryId: number): number {
     return this.dashboardData.expensesByCategory
-      .filter(expense => mappedCategories.includes(expense.category))
+      .filter(expense => expense.categoryId === categoryId)
       .reduce((sum, expense) => sum + expense.amount, 0);
   }
 
-  getCategorySpentPercentage(category: any): number {
-    const spentAmount = this.getCategorySpentAmount(category.name);
-    return category.amount > 0 ? Math.min((spentAmount / category.amount) * 100, 100) : 0;
+  getCategorySpentPercentage(category: CategoryBudget): number {
+    const spentAmount = this.getCategorySpentAmount(category.categoryId);
+    return category.limit > 0 ? Math.min((spentAmount / category.limit) * 100, 100) : 0;
   }
 
   navigateToExpenses(): void {
@@ -259,7 +241,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.expenseForm.reset({
       amount: null,
       date: DateUtils.getCurrentAustralianDate(),
-      category: ExpenseCategory.Miscellaneous,
+      categoryId: this.categoryOptions.length ? this.categoryOptions[0].id : null,
       description: '',
       paymentMethod: 'Credit Card',
       location: '',
@@ -287,6 +269,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const expenseData: Expense = {
         ...rawExpenseData,
         date: DateUtils.formatForAPI(rawExpenseData.date),
+        categoryId: rawExpenseData.categoryId,
         createdAt: new Date()
       };
       
@@ -335,8 +318,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  getCategoryLabel(category: ExpenseCategory): string {
-    return ExpenseCategoryLabels[category];
+  getCategoryLabelById(categoryId: number): string {
+    return this.categoryOptions.find(option => option.id === categoryId)?.name ?? 'Category';
+  }
+
+  getCategoryIconById(categoryId: number): string {
+    const category = this.categoryOptions.find(option => option.id === categoryId);
+    if (!category) {
+      return 'category';
+    }
+
+    if (category.icon && category.icon.trim().length > 0) {
+      return category.icon;
+    }
+
+    return this.getFallbackIcon(category.name);
+  }
+
+  private getFallbackIcon(categoryName: string): string {
+    const iconMap: Record<string, string> = {
+      'Mortgage': 'home',
+      'Rent': 'apartment',
+      'Groceries': 'shopping_cart',
+      'Transport': 'directions_car',
+      'Utilities': 'power',
+      'Food & Drinks': 'restaurant',
+      'Shopping': 'shopping_bag',
+      'Entertainment': 'movie',
+      'Health & Fitness': 'fitness_center',
+      'Home': 'home_repair_service',
+      'Miscellaneous': 'category',
+      'Savings': 'savings',
+      'Repayment': 'payment'
+    };
+
+    return iconMap[categoryName] ?? 'category';
   }
 
 

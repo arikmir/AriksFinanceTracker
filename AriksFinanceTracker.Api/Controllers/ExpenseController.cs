@@ -15,7 +15,9 @@ public class ExpenseController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Expense>>> GetExpenses([FromQuery] int? month, [FromQuery] int? year)
     {
-        var query = _context.Expenses.AsQueryable();
+        var query = _context.Expenses
+            .Include(e => e.Category)
+            .AsQueryable();
         
         if (month.HasValue && year.HasValue)
         {
@@ -30,7 +32,9 @@ public class ExpenseController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Expense>> GetExpense(int id)
     {
-        var expense = await _context.Expenses.FindAsync(id);
+        var expense = await _context.Expenses
+            .Include(e => e.Category)
+            .FirstOrDefaultAsync(e => e.Id == id);
         if (expense == null) return NotFound();
         return expense;
     }
@@ -38,11 +42,16 @@ public class ExpenseController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Expense>> CreateExpense(Expense expense)
     {
+        // Remove Category validation since it's a navigation property
+        ModelState.Remove("Category");
+        
         if (!ModelState.IsValid) return BadRequest(ModelState);
         
         expense.CreatedAt = DateTime.UtcNow;
+        expense.Category = null!;
         _context.Expenses.Add(expense);
         await _context.SaveChangesAsync();
+        await _context.Entry(expense).Reference(e => e.Category).LoadAsync();
         return CreatedAtAction(nameof(GetExpense), new { id = expense.Id }, expense);
     }
 
@@ -50,9 +59,15 @@ public class ExpenseController : ControllerBase
     public async Task<IActionResult> UpdateExpense(int id, Expense expense)
     {
         if (id != expense.Id) return BadRequest();
+        
+        // Remove Category validation since it's a navigation property
+        ModelState.Remove("Category");
+        
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
+        expense.Category = null!;
         _context.Entry(expense).State = EntityState.Modified;
+        _context.Entry(expense).Reference(e => e.Category).IsModified = false;
         
         try
         {
@@ -84,19 +99,25 @@ public class ExpenseController : ControllerBase
         var start = startDate ?? DateTime.Today.AddDays(-30);
         var end = endDate ?? DateTime.Today;
         
-        var dailyExpenses = await _context.Expenses
+        var expensesInRange = await _context.Expenses
+            .Include(e => e.Category)
             .Where(e => e.Date >= start && e.Date <= end)
+            .ToListAsync();
+
+        var dailyExpenses = expensesInRange
             .GroupBy(e => e.Date.Date)
             .Select(g => new DailyExpenseDto
             {
                 Date = g.Key,
                 TotalAmount = g.Sum(e => e.Amount),
                 TransactionCount = g.Count(),
-                Expenses = g.ToList()
+                Expenses = g
+                    .OrderByDescending(exp => exp.Date)
+                    .ToList()
             })
             .OrderBy(d => d.Date)
-            .ToListAsync();
-            
+            .ToList();
+        
         return Ok(dailyExpenses);
     }
 
@@ -205,17 +226,18 @@ public class ExpenseController : ControllerBase
         
         // Get all expenses and calculate on client side for SQLite compatibility
         var expenses = await _context.Expenses
+            .Include(e => e.Category)
             .Where(e => e.Date >= start && e.Date < end.AddSeconds(1))
             .ToListAsync();
             
         var totalAmount = expenses.Sum(e => e.Amount);
             
         var categorySummary = expenses
-            .GroupBy(e => e.Category)
+            .GroupBy(e => e.CategoryId)
             .Select(g => new CategorySummaryDto
             {
-                Category = g.Key,
-                CategoryName = g.Key.ToString(),
+                CategoryId = g.Key,
+                CategoryName = g.First().Category.Name,
                 TotalAmount = g.Sum(e => e.Amount),
                 TransactionCount = g.Count(),
                 Percentage = totalAmount > 0 ? (g.Sum(e => e.Amount) / totalAmount) * 100 : 0
@@ -226,9 +248,62 @@ public class ExpenseController : ControllerBase
         return Ok(categorySummary);
     }
 
+    [HttpGet("payment-methods/summary")]
+    public async Task<ActionResult<IEnumerable<PaymentMethodSummaryDto>>> GetPaymentMethodSummary([FromQuery] int? month, [FromQuery] int? year)
+    {
+        DateTime start, end;
+
+        if (month.HasValue && year.HasValue)
+        {
+            start = new DateTime(year.Value, month.Value, 1);
+            var lastDayOfMonth = start.AddMonths(1).AddDays(-1);
+
+            var today = DateTime.Today;
+            if (start <= today && lastDayOfMonth >= today)
+            {
+                end = today.AddDays(1).AddSeconds(-1);
+            }
+            else
+            {
+                end = lastDayOfMonth.AddDays(1).AddSeconds(-1);
+            }
+        }
+        else
+        {
+            var today = DateTime.Today;
+            start = new DateTime(today.Year, today.Month, 1);
+            end = today.AddDays(1).AddSeconds(-1);
+        }
+
+        var expenses = await _context.Expenses
+            .Where(e => e.Date >= start && e.Date < end.AddSeconds(1))
+            .ToListAsync();
+
+        var totalAmount = expenses.Sum(e => e.Amount);
+
+        var paymentSummary = expenses
+            .GroupBy(e => string.IsNullOrWhiteSpace(e.PaymentMethod) ? "Unspecified" : e.PaymentMethod!.Trim())
+            .Select(g =>
+            {
+                var groupTotal = g.Sum(e => e.Amount);
+                return new PaymentMethodSummaryDto
+                {
+                    PaymentMethod = g.Key,
+                    TotalAmount = groupTotal,
+                    TransactionCount = g.Count(),
+                    Percentage = totalAmount > 0 ? (groupTotal / totalAmount) * 100 : 0
+                };
+            })
+            .OrderByDescending(p => p.TotalAmount)
+            .ToList();
+
+        return Ok(paymentSummary);
+    }
+
     private async Task<ActionResult<ExpenseAnalyticsDto>> GetAnalytics(DateTime startDate, DateTime endDate)
     {
         var expenses = await _context.Expenses
+            .Include(e => e.Category)
             .Where(e => e.Date >= startDate && e.Date < endDate.AddSeconds(1))
             .ToListAsync();
             
@@ -249,8 +324,16 @@ public class ExpenseController : ControllerBase
             StartDate = startDate,
             EndDate = endDate,
             CategoryBreakdown = expenses
-                .GroupBy(e => e.Category)
-                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount))
+                .GroupBy(e => e.CategoryId)
+                .Select(g => new CategoryBreakdownDto
+                {
+                    CategoryId = g.Key,
+                    CategoryName = g.First().Category.Name,
+                    TotalAmount = g.Sum(e => e.Amount),
+                    TransactionCount = g.Count()
+                })
+                .OrderByDescending(cb => cb.TotalAmount)
+                .ToList()
         };
         
         return Ok(analytics);

@@ -1,19 +1,3 @@
-export enum ExpenseCategory {
-  FoodAndDrinks = 0,
-  Groceries = 1,
-  Shopping = 2,
-  Transport = 3,
-  Entertainment = 4,
-  Utilities = 5,
-  HealthAndFitness = 6,
-  Home = 7,
-  Savings = 8,
-  Repayment = 9,
-  Miscellaneous = 10,
-  Mortgage = 11,
-  Rent = 12
-}
-
 export enum SavingsGoalType {
   EmergencyFund = 0,
   Investments = 1,
@@ -45,16 +29,27 @@ export interface BudgetStatus {
 }
 
 export interface CategoryBudget {
-  category: ExpenseCategory;
+  categoryId: number;
   categoryName: string;
   limit: number;
   spent: number;
   remaining: number;
   percentageUsed: number;
-  dailyRecommendation: number;
   isEssential: boolean;
   status: string;
   statusColor: string;
+  isCustom: boolean;
+  icon?: string;
+  dailyRecommendation?: number;
+}
+
+export interface BudgetLimit {
+  categoryId: number;
+  categoryName: string;
+  monthlyLimit: number;
+  isEssential: boolean;
+  isCustom: boolean;
+  icon?: string;
 }
 
 export interface SavingsProgress {
@@ -87,7 +82,7 @@ export interface SpendingCheck {
 }
 
 export interface CheckSpendingRequest {
-  category: ExpenseCategory;
+  categoryId: number;
   amount: number;
 }
 
@@ -97,4 +92,16 @@ export interface SavingsCelebration {
   savingsAmount: number;
   achievements: string[];
   encouragement: string;
+}
+
+export interface CreateBudgetCategoryRequest {
+  name: string;
+  monthlyLimit: number;
+  isEssential: boolean;
+}
+
+export interface UpdateBudgetLimitRequest {
+  newLimit: number;
+  isEssential?: boolean;
+  name?: string;
 }

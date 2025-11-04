@@ -35,7 +35,16 @@
       "Bash(npm run lint)",
       "Bash(npm run:*)",
       "mcp__serena__find_file",
-      "mcp__serena__activate_project"
+      "mcp__serena__activate_project",
+      "mcp__serena__get_current_config",
+      "mcp__serena__list_dir",
+      "mcp__serena__execute_shell_command",
+      "mcp__serena__read_file",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(./backup.sh:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }
