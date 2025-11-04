@@ -22,6 +22,7 @@ export class ReportsComponent implements OnInit {
   
   // Chart data
   savingsRateHistory: any[] = [];
+  private maxSavingsRate = 0;
   categorySpendingData: any[] = [];
   savingsGoalsData: any[] = [];
   monthlyTrendsData: any[] = [];
@@ -73,6 +74,7 @@ export class ReportsComponent implements OnInit {
       { month: 'May', rate: 21 },
       { month: 'Current', rate: this.budgetStatus.savingsRate }
     ];
+    this.maxSavingsRate = Math.max(...this.savingsRateHistory.map(item => item.rate), 1);
 
     // Prepare category spending data
     this.categorySpendingData = this.budgetStatus.categoryBudgets.map(cb => ({
@@ -129,6 +131,15 @@ export class ReportsComponent implements OnInit {
     if (rate >= 20) return '#2196f3';
     if (rate >= 15) return '#ff9800';
     return '#f44336';
+  }
+
+  getSavingsRateHeight(rate: number): number {
+    if (this.maxSavingsRate <= 0) {
+      return 0;
+    }
+
+    const normalized = (rate / this.maxSavingsRate) * 100;
+    return Math.min(100, Math.max(12, normalized));
   }
 
   getCategoryColor(index: number): string {

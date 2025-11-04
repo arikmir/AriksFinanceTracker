@@ -80,7 +80,7 @@
             <div class="savings-trend-chart">
               <div *ngFor="let data of savingsRateHistory; let i = index" 
                    class="trend-bar" 
-                   [style.height.%]="(data.rate / 30) * 100"
+                   [style.height.%]="getSavingsRateHeight(data.rate)"
                    [style.background-color]="getSavingsRateColor(data.rate)">
                 <div class="bar-label">{{ formatPercentage(data.rate) }}</div>
               </div>
