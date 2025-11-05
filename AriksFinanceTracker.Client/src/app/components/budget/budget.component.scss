@@ -24,6 +24,10 @@
     margin: 0 auto;
   }
 
+  .full-width {
+    width: 100%;
+  }
+
   // Loading State
   .loading-container {
     display: flex;
@@ -177,6 +181,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
       margin-bottom: 16px;
 
       h3 {
@@ -189,6 +195,16 @@
       .days-left {
         color: #666;
         font-size: 0.875rem;
+      }
+
+      .section-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        button mat-icon {
+          margin-right: 4px;
+        }
       }
     }
 
@@ -215,6 +231,7 @@
       
       .edit-button {
         opacity: 1;
+        color: #1e88e5;
       }
     }
 
@@ -268,16 +285,22 @@
       }
 
       .edit-button {
-        opacity: 0;
-        transition: opacity 0.2s ease;
         width: 32px;
         height: 32px;
         line-height: 32px;
+        opacity: 0.75;
+        color: #616161;
+        transition: opacity 0.2s ease, color 0.2s ease;
 
         mat-icon {
           font-size: 18px;
           height: 18px;
           width: 18px;
+        }
+
+        &:focus-visible {
+          outline: 2px solid #1e88e5;
+          outline-offset: 2px;
         }
       }
     }

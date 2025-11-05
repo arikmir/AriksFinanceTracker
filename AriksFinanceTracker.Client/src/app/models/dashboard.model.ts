@@ -7,6 +7,7 @@ export interface DashboardData {
 }
 
 export interface ExpenseByCategory {
-  category: string;
+  categoryId: number;
+  categoryName: string;
   amount: number;
 }

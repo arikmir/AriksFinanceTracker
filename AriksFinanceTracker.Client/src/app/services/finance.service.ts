@@ -2,10 +2,20 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Expense, ExpenseAnalytics, DailyExpense, CategorySummary } from '../models/expense.model';
+import { Expense, ExpenseAnalytics, DailyExpense, CategorySummary, PaymentMethodSummary, SpendingCategoryOption } from '../models/expense.model';
 import { Income } from '../models/income.model';
 import { DashboardData } from '../models/dashboard.model';
-import { BudgetStatus, FinancialHealth, SpendingCheck, CheckSpendingRequest, SavingsCelebration } from '../models/budget.model';
+import {
+  BudgetLimit,
+  BudgetStatus,
+  CategoryBudget,
+  CheckSpendingRequest,
+  CreateBudgetCategoryRequest,
+  FinancialHealth,
+  SavingsCelebration,
+  SpendingCheck,
+  UpdateBudgetLimitRequest
+} from '../models/budget.model';
 
 @Injectable({
   providedIn: 'root'
@@ -105,6 +115,14 @@ export class FinanceService {
     return this.http.get<CategorySummary[]>(`${this.apiUrl}/expense/categories/summary`, { params });
   }
 
+  getPaymentMethodSummary(month?: number, year?: number): Observable<PaymentMethodSummary[]> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month.toString());
+    if (year) params = params.set('year', year.toString());
+
+    return this.http.get<PaymentMethodSummary[]>(`${this.apiUrl}/expense/payment-methods/summary`, { params });
+  }
+
   // Budget API methods
   initializeBudget(): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/budget/initialize`, {});
@@ -132,14 +150,26 @@ export class FinanceService {
     return this.http.get<any[]>(`${this.apiUrl}/budget/alerts`);
   }
 
-  getBudgetLimits(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/budget/limits`).pipe(
+  getBudgetLimits(): Observable<BudgetLimit[]> {
+    return this.http.get<BudgetLimit[]>(`${this.apiUrl}/budget/limits`).pipe(
       catchError(this.handleError)
     );
   }
 
-  updateCategoryLimit(category: number, newLimit: number): Observable<any> {
-    return this.http.put(`${this.apiUrl}/budget/category/${category}/limit`, { newLimit }).pipe(
+  getSpendingCategories(): Observable<SpendingCategoryOption[]> {
+    return this.http.get<SpendingCategoryOption[]>(`${this.apiUrl}/budget/categories`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  createBudgetCategory(request: CreateBudgetCategoryRequest): Observable<CategoryBudget> {
+    return this.http.post<CategoryBudget>(`${this.apiUrl}/budget/categories`, request).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  updateCategoryLimit(categoryId: number, payload: UpdateBudgetLimitRequest): Observable<any> {
+    return this.http.put(`${this.apiUrl}/budget/category/${categoryId}/limit`, payload).pipe(
       catchError(this.handleError)
     );
   }

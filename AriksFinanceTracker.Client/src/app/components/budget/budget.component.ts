@@ -14,6 +14,7 @@ import { forkJoin, Subscription } from 'rxjs';
 export class BudgetComponent implements OnInit, OnDestroy {
   @ViewChild('budgetEditDialog') budgetEditDialog!: TemplateRef<any>;
   @ViewChild('healthDialog') healthDialog!: TemplateRef<any>;
+  @ViewChild('categoryCreateDialog') categoryCreateDialog!: TemplateRef<any>;
 
   budgetStatus?: BudgetStatus;
   financialHealth?: FinancialHealth;
@@ -28,6 +29,10 @@ export class BudgetComponent implements OnInit, OnDestroy {
   // Budget editing
   editingCategory?: CategoryBudget;
   newBudgetLimit = 0;
+  newCategoryName = '';
+  newCategoryLimit = 0;
+  newCategoryIsEssential = false;
+  isSavingNewCategory = false;
   
   Math = Math; // Make Math available in template
   
@@ -99,6 +104,16 @@ export class BudgetComponent implements OnInit, OnDestroy {
     this.loadBudgetData();
   }
 
+  openCreateCategoryDialog(): void {
+    this.newCategoryName = '';
+    this.newCategoryLimit = 0;
+    this.newCategoryIsEssential = false;
+    this.dialog.open(this.categoryCreateDialog, {
+      width: '400px',
+      disableClose: true
+    });
+  }
+
   editBudgetLimit(category: CategoryBudget): void {
     this.editingCategory = category;
     this.newBudgetLimit = category.limit;
@@ -112,8 +127,8 @@ export class BudgetComponent implements OnInit, OnDestroy {
     if (!this.editingCategory) return;
 
     this.financeService.updateCategoryLimit(
-      this.editingCategory.category, 
-      this.newBudgetLimit
+      this.editingCategory.categoryId,
+      { newLimit: this.newBudgetLimit }
     ).subscribe({
       next: () => {
         this.snackBar.open('Budget limit updated successfully!', 'Close', {
@@ -138,6 +153,45 @@ export class BudgetComponent implements OnInit, OnDestroy {
     this.dialog.open(this.healthDialog, {
       width: '500px',
       maxWidth: '90vw'
+    });
+  }
+
+  saveNewCategory(): void {
+    const trimmedName = this.newCategoryName.trim();
+
+    if (!trimmedName || this.newCategoryLimit <= 0) {
+      this.snackBar.open('Please provide a name and positive limit for the new category.', 'Close', {
+        duration: 3000,
+        panelClass: ['error-snackbar']
+      });
+      return;
+    }
+
+    this.isSavingNewCategory = true;
+
+    this.financeService.createBudgetCategory({
+      name: trimmedName,
+      monthlyLimit: this.newCategoryLimit,
+      isEssential: this.newCategoryIsEssential
+    }).subscribe({
+      next: () => {
+        this.snackBar.open('Category created successfully!', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top'
+        });
+        this.dialog.closeAll();
+        this.isSavingNewCategory = false;
+        this.loadBudgetData();
+      },
+      error: (error) => {
+        console.error('Error creating category:', error);
+        this.snackBar.open('Failed to create category', 'Close', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+        this.isSavingNewCategory = false;
+      }
     });
   }
 

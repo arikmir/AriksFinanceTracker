@@ -50,7 +50,7 @@ public class BudgetController : ControllerBase
     {
         try
         {
-            var result = await _budgetService.CheckSpendingAsync(request.Category, request.Amount);
+            var result = await _budgetService.CheckSpendingAsync(request.CategoryId, request.Amount);
             return Ok(result);
         }
         catch (Exception ex)
@@ -137,13 +137,41 @@ public class BudgetController : ControllerBase
         }
     }
 
-    [HttpPut("category/{category}/limit")]
-    public async Task<ActionResult> UpdateCategoryLimit(ExpenseCategory category, [FromBody] UpdateBudgetLimitRequest request)
+    [HttpGet("categories")]
+    public async Task<ActionResult<List<SpendingCategoryDto>>> GetBudgetCategories()
     {
         try
         {
-            await _budgetService.UpdateCategoryLimitAsync(category, request.NewLimit);
-            return Ok(new { message = $"Budget limit for {category} updated successfully!" });
+            var categories = await _budgetService.GetSpendingCategoriesAsync();
+            return Ok(categories);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error getting budget categories", error = ex.Message });
+        }
+    }
+
+    [HttpPost("categories")]
+    public async Task<ActionResult<CategoryBudgetDto>> CreateBudgetCategory([FromBody] CreateBudgetCategoryRequest request)
+    {
+        try
+        {
+            var category = await _budgetService.CreateCustomCategoryAsync(request.Name, request.MonthlyLimit, request.IsEssential);
+            return Ok(category);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error creating budget category", error = ex.Message });
+        }
+    }
+
+    [HttpPut("category/{categoryId}/limit")]
+    public async Task<ActionResult> UpdateCategoryLimit(int categoryId, [FromBody] UpdateBudgetLimitRequest request)
+    {
+        try
+        {
+            await _budgetService.UpdateCategoryLimitAsync(categoryId, request.NewLimit, request.IsEssential, request.Name);
+            return Ok(new { message = "Budget limit updated successfully!" });
         }
         catch (Exception ex)
         {
@@ -154,11 +182,20 @@ public class BudgetController : ControllerBase
 
 public class CheckSpendingRequest
 {
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
     public decimal Amount { get; set; }
 }
 
 public class UpdateBudgetLimitRequest
 {
     public decimal NewLimit { get; set; }
+    public bool? IsEssential { get; set; }
+    public string? Name { get; set; }
+}
+
+public class CreateBudgetCategoryRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal MonthlyLimit { get; set; }
+    public bool IsEssential { get; set; }
 }

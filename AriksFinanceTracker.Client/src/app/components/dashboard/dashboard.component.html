@@ -71,10 +71,10 @@
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>Category</mat-label>
-              <mat-select formControlName="category">
-                <mat-option *ngFor="let category of categories" [value]="category">
-                  <mat-icon>{{getCategoryIcon(category)}}</mat-icon>
-                  {{getCategoryLabel(category)}}
+              <mat-select formControlName="categoryId">
+                <mat-option *ngFor="let category of categoryOptions" [value]="category.id">
+                  <mat-icon>{{ category.icon || 'category' }}</mat-icon>
+                  {{ category.name }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -317,10 +317,10 @@
           <mat-card *ngFor="let category of budgetCategories" class="budget-item mat-elevation-z2">
             <mat-card-content>
               <div class="budget-header">
-                <mat-icon class="category-icon">{{category.icon}}</mat-icon>
+                <mat-icon class="category-icon">{{ getCategoryIconById(category.categoryId) }}</mat-icon>
                 <div class="category-info">
-                  <h4 class="mat-h4">{{category.name}}</h4>
-                  <span class="category-amount">${{category.amount}}</span>
+                  <h4 class="mat-h4">{{category.categoryName}}</h4>
+                  <span class="category-amount">${{category.limit | number:'1.0-0'}}</span>
                 </div>
               </div>
               <mat-progress-bar 
@@ -328,7 +328,7 @@
                 [value]="getCategorySpentPercentage(category)" 
                 color="primary">
               </mat-progress-bar>
-              <small class="budget-progress">${{getCategorySpentAmount(category.name) | number:'1.0-0'}} spent ({{getCategorySpentPercentage(category) | number:'1.0-0'}}%)</small>
+              <small class="budget-progress">${{getCategorySpentAmount(category.categoryId) | number:'1.0-0'}} spent ({{getCategorySpentPercentage(category) | number:'1.0-0'}}%)</small>
             </mat-card-content>
           </mat-card>
         </div>

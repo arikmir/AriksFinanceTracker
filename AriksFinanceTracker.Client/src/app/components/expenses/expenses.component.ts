@@ -6,14 +6,13 @@ import { Observable, forkJoin, Subscription } from 'rxjs';
 import { FinanceService } from '../../services/finance.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { MonthSelectionService } from '../../services/month-selection.service';
-import { 
-  Expense, 
-  ExpenseCategory, 
-  ExpenseCategoryLabels, 
-  ExpenseCategoryIcons,
+import {
+  Expense,
   ExpenseAnalytics,
   DailyExpense,
-  CategorySummary 
+  CategorySummary,
+  PaymentMethodSummary,
+  SpendingCategoryOption
 } from '../../models/expense.model';
 import { BudgetStatus, SpendingCheck, CheckSpendingRequest } from '../../models/budget.model';
 
@@ -39,9 +38,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   
   private subscriptions: Subscription = new Subscription();
   
-  ExpenseCategory = ExpenseCategory;
-  ExpenseCategoryLabels = ExpenseCategoryLabels;
-  ExpenseCategoryIcons = ExpenseCategoryIcons;
   Math = Math;
   
   // Date navigation
@@ -49,11 +45,14 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                  'July', 'August', 'September', 'October', 'November', 'December'];
   
-  categories = Object.values(ExpenseCategory).filter(value => typeof value === 'number') as ExpenseCategory[];
-  paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Digital Wallet'];
+  categoryOptions: SpendingCategoryOption[] = [];
+  paymentMethodSummary: PaymentMethodSummary[] = [];
+  private readonly defaultPaymentMethods: string[] = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Digital Wallet'];
+  paymentMethods: string[] = [...this.defaultPaymentMethods];
   
   selectedPeriod = 'week';
-  filterCategory: ExpenseCategory | 'all' = 'all';
+  filterCategory: number | 'all' = 'all';
+  filterPaymentMethod: string | 'all' = 'all';
   startDate: Date | null = null;
   endDate: Date | null = null;
 
@@ -67,7 +66,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   ) {
     this.expenseForm = this.fb.group({
       amount: ['', [Validators.required, Validators.min(0.01)]],
-      category: [ExpenseCategory.Miscellaneous, Validators.required],
+      categoryId: [null, Validators.required],
       description: ['', [Validators.required, Validators.minLength(3)]],
       paymentMethod: [''],
       location: [''],
@@ -119,13 +118,19 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       expenses: this.financeService.getExpenses(month, year),
       weeklyAnalytics: this.financeService.getWeeklyExpenseAnalytics(this.selectedDate),
       monthlyAnalytics: this.financeService.getMonthlyExpenseAnalytics(this.selectedDate),
-      categorySummary: this.financeService.getCategorySummary(month, year)
+      categorySummary: this.financeService.getCategorySummary(month, year),
+      paymentMethodSummary: this.financeService.getPaymentMethodSummary(month, year)
     }).subscribe({
       next: (data) => {
-        this.expenses = data.expenses;
+        this.expenses = data.expenses.map(expense => ({
+          ...expense,
+          categoryName: expense.category?.name ?? expense.categoryName
+        }));
         this.weeklyAnalytics = data.weeklyAnalytics;
         this.monthlyAnalytics = data.monthlyAnalytics;
         this.categorySummary = data.categorySummary;
+        this.paymentMethodSummary = data.paymentMethodSummary;
+        this.updatePaymentMethodOptions(data.expenses, data.paymentMethodSummary);
       },
       error: (error) => {
         console.error('Error loading data:', error);
@@ -134,11 +139,75 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadCategories(): void {
+    this.financeService.getSpendingCategories().subscribe({
+      next: (categories) => {
+        this.categoryOptions = categories.map(category => ({
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+          isCustom: category.isCustom,
+          isEssential: category.isEssentialDefault,
+          isEssentialDefault: category.isEssentialDefault
+        }));
+
+        if (!this.expenseForm.get('categoryId')?.value && this.categoryOptions.length > 0) {
+          this.expenseForm.patchValue({ categoryId: this.categoryOptions[0].id });
+        }
+      },
+      error: (error) => {
+        console.error('Error loading categories:', error);
+        this.categoryOptions = [];
+      }
+    });
+  }
+
+  private updatePaymentMethodOptions(expenses: Expense[], paymentSummary: PaymentMethodSummary[]): void {
+    const methods = new Set<string>(this.defaultPaymentMethods);
+
+    paymentSummary.forEach(item => methods.add(this.normalizePaymentMethod(item.paymentMethod)));
+    expenses.forEach(expense => methods.add(this.normalizePaymentMethod(expense.paymentMethod)));
+
+    this.paymentMethods = Array.from(methods);
+
+    if (this.filterPaymentMethod !== 'all' && !methods.has(this.filterPaymentMethod)) {
+      this.filterPaymentMethod = 'all';
+    }
+  }
+
+  private normalizePaymentMethod(method?: string | null): string {
+    const trimmed = method?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : 'Unspecified';
+  }
+
+  formatPaymentMethod(method: string): string {
+    return this.normalizePaymentMethod(method);
+  }
+
+  getPaymentMethodIcon(method: string): string {
+    const normalized = this.normalizePaymentMethod(method);
+    const iconMap: Record<string, string> = {
+      'Cash': 'attach_money',
+      'Credit Card': 'credit_card',
+      'Debit Card': 'atm',
+      'Bank Transfer': 'account_balance',
+      'Digital Wallet': 'phone_iphone',
+      'Check': 'description',
+      'Unspecified': 'help_outline'
+    };
+
+    return iconMap[normalized] ?? 'account_balance_wallet';
+  }
+
   onSubmit(): void {
     if (this.expenseForm.valid) {
       const formValue = this.expenseForm.value;
+      const amount = Number(formValue.amount);
+      const categoryId = Number(formValue.categoryId);
       const expense: Expense = {
         ...formValue,
+        amount,
+        categoryId,
         createdAt: new Date(),
         updatedAt: this.editingExpense ? new Date() : undefined
       };
@@ -178,7 +247,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     this.editingExpense = expense;
     this.expenseForm.patchValue({
       amount: expense.amount,
-      category: expense.category,
+      categoryId: expense.categoryId,
       description: expense.description,
       paymentMethod: expense.paymentMethod,
       location: expense.location,
@@ -207,7 +276,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
 
   resetForm(): void {
     this.expenseForm.reset({
-      category: ExpenseCategory.Miscellaneous,
+      categoryId: this.categoryOptions.length ? this.categoryOptions[0].id : null,
       isRecurring: false,
       date: new Date()
     });
@@ -215,19 +284,50 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     this.editingExpense = null;
   }
 
-  getCategoryIcon(category: ExpenseCategory): string {
-    return this.ExpenseCategoryIcons[category];
+  getCategoryIconById(categoryId: number): string {
+    const category = this.categoryOptions.find(option => option.id === categoryId);
+    if (!category) {
+      return 'category';
+    }
+    if (category.icon && category.icon.trim().length > 0) {
+      return category.icon;
+    }
+    return this.getFallbackIcon(category.name);
   }
 
-  getCategoryLabel(category: ExpenseCategory): string {
-    return this.ExpenseCategoryLabels[category];
+  getCategoryNameById(categoryId: number): string {
+    return this.categoryOptions.find(option => option.id === categoryId)?.name ?? 'Category';
+  }
+
+  private getFallbackIcon(categoryName: string): string {
+    const iconMap: Record<string, string> = {
+      'Mortgage': 'home',
+      'Rent': 'apartment',
+      'Groceries': 'shopping_cart',
+      'Transport': 'directions_car',
+      'Utilities': 'power',
+      'Food & Drinks': 'restaurant',
+      'Entertainment': 'movie',
+      'Health & Fitness': 'fitness_center',
+      'Home': 'home_repair_service',
+      'Savings': 'savings',
+      'Shopping': 'shopping_bag',
+      'Repayment': 'payment',
+      'Miscellaneous': 'category'
+    };
+
+    return iconMap[categoryName] ?? 'category';
   }
 
   getFilteredExpenses(): Expense[] {
     let filtered = this.expenses;
     
     if (this.filterCategory !== 'all') {
-      filtered = filtered.filter(e => e.category === this.filterCategory);
+      filtered = filtered.filter(e => e.categoryId === this.filterCategory);
+    }
+
+    if (this.filterPaymentMethod !== 'all') {
+      filtered = filtered.filter(e => this.normalizePaymentMethod(e.paymentMethod) === this.filterPaymentMethod);
     }
     
     if (this.startDate && this.endDate) {
@@ -259,6 +359,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     this.financeService.getBudgetStatus().subscribe({
       next: (status) => {
         this.budgetStatus = status;
+        this.loadCategories();
       },
       error: (error) => {
         console.error('Error loading budget status:', error);
@@ -272,19 +373,20 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.updateSpendingGuidance();
     });
     
-    this.expenseForm.get('category')?.valueChanges.subscribe(() => {
+    this.expenseForm.get('categoryId')?.valueChanges.subscribe(() => {
       this.updateSpendingGuidance();
     });
   }
 
   updateSpendingGuidance(): void {
-    const amount = this.expenseForm.get('amount')?.value;
-    const category = this.expenseForm.get('category')?.value;
-    
-    if (amount > 0 && category !== null && category !== undefined) {
+    const amountValue = this.expenseForm.get('amount')?.value;
+    const amount = Number(amountValue);
+    const categoryId = this.expenseForm.get('categoryId')?.value;
+
+    if (amount > 0 && categoryId !== null && categoryId !== undefined) {
       const request: CheckSpendingRequest = {
-        category: category,
-        amount: parseFloat(amount)
+        categoryId,
+        amount
       };
       
       this.financeService.checkSpending(request).subscribe({
@@ -302,9 +404,9 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     }
   }
 
-  getCategoryBudgetInfo(category: ExpenseCategory) {
+  getCategoryBudgetInfo(categoryId: number) {
     if (!this.budgetStatus) return null;
-    return this.budgetStatus.categoryBudgets.find(cb => cb.category === category);
+    return this.budgetStatus.categoryBudgets.find(cb => cb.categoryId === categoryId);
   }
 
   getAlertLevelColor(alertLevel?: number): string {

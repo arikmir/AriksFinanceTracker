@@ -11,6 +11,23 @@ public class BudgetService
     private readonly FinanceContext _context;
     private const decimal MONTHLY_INCOME = 8000m;
 
+    private static readonly IReadOnlyList<DefaultCategoryConfig> DefaultCategories = new List<DefaultCategoryConfig>
+    {
+        new("Mortgage", "home", true, 1746m, 3750m),
+        new("Rent", "apartment", true, 2340m, 0m),
+        new("Groceries", "shopping_cart", true, 400m, 400m),
+        new("Transport", "directions_car", true, 350m, 350m),
+        new("Utilities", "power", true, 320m, 320m),
+        new("Repayment", "payment", true, 500m, 500m),
+        new("Food & Drinks", "restaurant", false, 200m, 300m),
+        new("Entertainment", "movie", false, 150m, 200m),
+        new("Health & Fitness", "fitness_center", false, 112m, 112m),
+        new("Home", "home_repair_service", false, 200m, 250m),
+        new("Savings", "savings", false, 300m, 400m),
+        new("Shopping", "shopping_bag", false, 100m, 200m),
+        new("Miscellaneous", "category", false, 150m, 200m)
+    };
+
     public BudgetService(FinanceContext context)
     {
         _context = context;
@@ -18,11 +35,23 @@ public class BudgetService
 
     public async Task InitializeAriksBudgetAsync()
     {
-        // Check if already initialized
-        if (await _context.FinancialPeriods.AnyAsync())
-            return;
+        await EnsureFinancialPeriodsAsync();
+        await EnsureDefaultCategoriesAsync();
 
-        // Create financial periods
+        var periods = await _context.FinancialPeriods.ToListAsync();
+        foreach (var period in periods)
+        {
+            await EnsureBudgetsForPeriodAsync(period);
+        }
+    }
+
+    private async Task EnsureFinancialPeriodsAsync()
+    {
+        if (await _context.FinancialPeriods.AnyAsync())
+        {
+            return;
+        }
+
         var doubleHousingPeriod = new FinancialPeriod
         {
             Name = "Double Housing Period",
@@ -45,62 +74,69 @@ public class BudgetService
 
         _context.FinancialPeriods.AddRange(doubleHousingPeriod, newHomePeriod);
         await _context.SaveChangesAsync();
+    }
 
-        // Create budget limits for Double Housing Period
-        var doubleHousingBudgets = new List<BudgetLimit>
+    private async Task EnsureDefaultCategoriesAsync()
+    {
+        var existingNames = await _context.SpendingCategories
+            .Select(c => c.Name)
+            .ToListAsync();
+
+        foreach (var config in DefaultCategories)
         {
-            new() { Category = ExpenseCategory.Mortgage, MonthlyLimit = 1746m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Rent, MonthlyLimit = 2340m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Groceries, MonthlyLimit = 400m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Transport, MonthlyLimit = 350m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Utilities, MonthlyLimit = 320m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Repayment, MonthlyLimit = 500m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.FoodAndDrinks, MonthlyLimit = 200m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Entertainment, MonthlyLimit = 150m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.HealthAndFitness, MonthlyLimit = 112m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Home, MonthlyLimit = 200m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Savings, MonthlyLimit = 300m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Shopping, MonthlyLimit = 100m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Miscellaneous, MonthlyLimit = 150m, FinancialPeriodId = doubleHousingPeriod.Id, IsEssential = false }
-        };
+            if (!existingNames.Contains(config.Name))
+            {
+                _context.SpendingCategories.Add(new SpendingCategory
+                {
+                    Name = config.Name,
+                    Icon = config.Icon,
+                    IsSystem = true,
+                    IsEssentialDefault = config.IsEssential
+                });
+            }
+        }
 
-        // Create budget limits for New Home Period
-        var newHomeBudgets = new List<BudgetLimit>
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task EnsureBudgetsForPeriodAsync(FinancialPeriod period)
+    {
+        var existingCategoryIds = await _context.BudgetLimits
+            .Where(bl => bl.FinancialPeriodId == period.Id)
+            .Select(bl => bl.CategoryId)
+            .ToListAsync();
+
+        var categories = await _context.SpendingCategories.ToDictionaryAsync(c => c.Name);
+
+        foreach (var config in DefaultCategories)
         {
-            new() { Category = ExpenseCategory.Mortgage, MonthlyLimit = 3750m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Groceries, MonthlyLimit = 400m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Transport, MonthlyLimit = 350m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Utilities, MonthlyLimit = 320m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.Repayment, MonthlyLimit = 500m, FinancialPeriodId = newHomePeriod.Id, IsEssential = true },
-            new() { Category = ExpenseCategory.FoodAndDrinks, MonthlyLimit = 300m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Entertainment, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Home, MonthlyLimit = 250m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Savings, MonthlyLimit = 400m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Shopping, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.Miscellaneous, MonthlyLimit = 200m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false },
-            new() { Category = ExpenseCategory.HealthAndFitness, MonthlyLimit = 112m, FinancialPeriodId = newHomePeriod.Id, IsEssential = false }
-        };
+            if (!categories.TryGetValue(config.Name, out var category))
+            {
+                continue;
+            }
 
-        _context.BudgetLimits.AddRange(doubleHousingBudgets);
-        _context.BudgetLimits.AddRange(newHomeBudgets);
+            var limit = period.Type == FinancialPeriodType.DoubleHousingPeriod
+                ? config.DoubleHousingLimit
+                : config.NewHomeLimit;
 
-        // Create savings goals for Double Housing Period
-        var doubleHousingSavings = new List<SavingsGoal>
-        {
-            new() { Type = SavingsGoalType.EmergencyFund, Name = "Emergency Fund", MonthlyTarget = 1000m, FinancialPeriodId = doubleHousingPeriod.Id, IsRequired = true },
-            new() { Type = SavingsGoalType.Investments, Name = "Investment Portfolio", MonthlyTarget = 800m, FinancialPeriodId = doubleHousingPeriod.Id, IsRequired = false }
-        };
+            if (limit <= 0)
+            {
+                continue;
+            }
 
-        // Create savings goals for New Home Period
-        var newHomeSavings = new List<SavingsGoal>
-        {
-            new() { Type = SavingsGoalType.EmergencyFund, Name = "Emergency Fund", MonthlyTarget = 600m, FinancialPeriodId = newHomePeriod.Id, IsRequired = true },
-            new() { Type = SavingsGoalType.Investments, Name = "Investment Portfolio", MonthlyTarget = 800m, FinancialPeriodId = newHomePeriod.Id, IsRequired = true },
-            new() { Type = SavingsGoalType.HouseFuture, Name = "House & Future Goals", MonthlyTarget = 520m, FinancialPeriodId = newHomePeriod.Id, IsRequired = false }
-        };
+            if (existingCategoryIds.Contains(category.Id))
+            {
+                continue;
+            }
 
-        _context.SavingsGoals.AddRange(doubleHousingSavings);
-        _context.SavingsGoals.AddRange(newHomeSavings);
+            _context.BudgetLimits.Add(new BudgetLimit
+            {
+                CategoryId = category.Id,
+                FinancialPeriodId = period.Id,
+                MonthlyLimit = limit,
+                IsEssential = config.IsEssential
+            });
+        }
 
         await _context.SaveChangesAsync();
     }
@@ -108,8 +144,7 @@ public class BudgetService
     public async Task<BudgetStatusDto> GetCurrentBudgetStatusAsync()
     {
         var currentPeriod = await GetCurrentFinancialPeriodAsync();
-        var currentMonth = DateTime.Today.Year * 100 + DateTime.Today.Month;
-        
+
         var currentMonthExpenses = await _context.Expenses
             .Where(e => e.Date.Year == DateTime.Today.Year && e.Date.Month == DateTime.Today.Month)
             .ToListAsync();
@@ -118,7 +153,14 @@ public class BudgetService
             .Where(i => i.Date.Year == DateTime.Today.Year && i.Date.Month == DateTime.Today.Month)
             .SumAsync(i => i.Amount);
 
+        var daysLeftInMonth = DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1;
+        if (daysLeftInMonth < 0)
+        {
+            daysLeftInMonth = 0;
+        }
+
         var budgetLimits = await _context.BudgetLimits
+            .Include(bl => bl.Category)
             .Where(bl => bl.FinancialPeriodId == currentPeriod.Id)
             .ToListAsync();
 
@@ -133,42 +175,47 @@ public class BudgetService
         foreach (var budget in budgetLimits)
         {
             var spent = currentMonthExpenses
-                .Where(e => e.Category == budget.Category)
+                .Where(e => e.CategoryId == budget.CategoryId)
                 .Sum(e => e.Amount);
 
-            var percentageUsed = budget.MonthlyLimit > 0 ? (spent / budget.MonthlyLimit) * 100 : 0;
-            var remaining = budget.MonthlyLimit - spent;
+            var percentageUsed = budget.MonthlyLimit > 0
+                ? (spent / budget.MonthlyLimit) * 100
+                : 0;
 
-            var status = GetCategoryStatus(percentageUsed);
-            var statusColor = GetStatusColor(percentageUsed);
+            var remaining = budget.MonthlyLimit - spent;
+            var dailyRecommendation = daysLeftInMonth > 0 && remaining > 0
+                ? remaining / daysLeftInMonth
+                : 0;
 
             categoryBudgets.Add(new CategoryBudgetDto
             {
-                Category = budget.Category,
-                CategoryName = GetCategoryDisplayName(budget.Category),
+                CategoryId = budget.CategoryId,
+                CategoryName = budget.Category.Name,
                 Limit = budget.MonthlyLimit,
                 Spent = spent,
                 Remaining = remaining,
                 PercentageUsed = percentageUsed,
                 IsEssential = budget.IsEssential,
-                Status = status,
-                StatusColor = statusColor
+                Status = GetCategoryStatus(percentageUsed),
+                StatusColor = GetStatusColor(percentageUsed),
+                IsCustom = !budget.Category.IsSystem,
+                Icon = budget.Category.Icon,
+                DailyRecommendation = dailyRecommendation
             });
 
             totalBudgeted += budget.MonthlyLimit;
             totalSpent += spent;
         }
 
-        // Calculate savings
         var savingsProgress = new List<SavingsProgressDto>();
         decimal totalSavingsTarget = savingsGoals.Sum(sg => sg.MonthlyTarget);
-        decimal actualSavings = Math.Max(0, currentMonthIncome - totalSpent);
-        
+        decimal actualSavings = Math.Max(0, (currentMonthIncome > 0 ? currentMonthIncome : MONTHLY_INCOME) - totalSpent);
+
         foreach (var goal in savingsGoals)
         {
-            var actualForThisGoal = actualSavings * (goal.MonthlyTarget / totalSavingsTarget);
+            var allocationRatio = totalSavingsTarget > 0 ? goal.MonthlyTarget / totalSavingsTarget : 0;
+            var actualForThisGoal = actualSavings * allocationRatio;
             var progress = goal.MonthlyTarget > 0 ? (actualForThisGoal / goal.MonthlyTarget) * 100 : 0;
-            var isAchieved = actualForThisGoal >= goal.MonthlyTarget;
 
             savingsProgress.Add(new SavingsProgressDto
             {
@@ -177,38 +224,41 @@ public class BudgetService
                 Target = goal.MonthlyTarget,
                 Actual = actualForThisGoal,
                 Progress = Math.Min(100, progress),
-                IsAchieved = isAchieved,
+                IsAchieved = actualForThisGoal >= goal.MonthlyTarget,
                 MotivationalMessage = GetSavingsMotivationalMessage(progress, goal.Name)
             });
         }
 
-        var savingsRate = currentMonthIncome > 0 ? (actualSavings / currentMonthIncome) * 100 : 0;
-        var remainingDaysInMonth = DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month) - DateTime.Today.Day + 1;
-
+        var incomeBaseline = currentMonthIncome > 0 ? currentMonthIncome : MONTHLY_INCOME;
+        var savingsRate = incomeBaseline > 0 ? (actualSavings / incomeBaseline) * 100 : 0;
         return new BudgetStatusDto
         {
             CurrentPeriod = currentPeriod.Name,
             PeriodDescription = currentPeriod.Description,
-            MonthlyIncome = currentMonthIncome > 0 ? currentMonthIncome : MONTHLY_INCOME,
+            MonthlyIncome = incomeBaseline,
             TotalBudgeted = totalBudgeted,
             TotalSpent = totalSpent,
             RemainingBudget = totalBudgeted - totalSpent,
             SavingsTarget = totalSavingsTarget,
             ActualSavings = actualSavings,
             SavingsRate = savingsRate,
-            DaysLeftInMonth = remainingDaysInMonth,
-            CategoryBudgets = categoryBudgets.OrderByDescending(cb => cb.IsEssential).ThenBy(cb => cb.CategoryName).ToList(),
+            DaysLeftInMonth = daysLeftInMonth,
+            CategoryBudgets = categoryBudgets
+                .OrderByDescending(cb => cb.IsEssential)
+                .ThenBy(cb => cb.CategoryName)
+                .ToList(),
             SavingsProgress = savingsProgress,
             MotivationalMessage = GetMotivationalMessage(savingsRate, currentPeriod.Type)
         };
     }
 
-    public async Task<SpendingCheckDto> CheckSpendingAsync(ExpenseCategory category, decimal amount)
+    public async Task<SpendingCheckDto> CheckSpendingAsync(int categoryId, decimal amount)
     {
         var currentPeriod = await GetCurrentFinancialPeriodAsync();
-        
+
         var budgetLimit = await _context.BudgetLimits
-            .FirstOrDefaultAsync(bl => bl.Category == category && bl.FinancialPeriodId == currentPeriod.Id);
+            .Include(bl => bl.Category)
+            .FirstOrDefaultAsync(bl => bl.CategoryId == categoryId && bl.FinancialPeriodId == currentPeriod.Id);
 
         if (budgetLimit == null)
         {
@@ -221,22 +271,24 @@ public class BudgetService
         }
 
         var currentMonthSpending = await _context.Expenses
-            .Where(e => e.Category == category && 
-                       e.Date.Year == DateTime.Today.Year && 
-                       e.Date.Month == DateTime.Today.Month)
+            .Where(e => e.CategoryId == categoryId &&
+                        e.Date.Year == DateTime.Today.Year &&
+                        e.Date.Month == DateTime.Today.Month)
             .SumAsync(e => e.Amount);
 
         var newTotal = currentMonthSpending + amount;
-        var newPercentageUsed = (newTotal / budgetLimit.MonthlyLimit) * 100;
+        var newPercentageUsed = budgetLimit.MonthlyLimit > 0
+            ? (newTotal / budgetLimit.MonthlyLimit) * 100
+            : 0;
         var remainingBudget = budgetLimit.MonthlyLimit - newTotal;
 
         var alertLevel = GetAlertLevel(newPercentageUsed);
-        var message = GetSpendingCheckMessage(category, newPercentageUsed, budgetLimit.IsEssential);
+        var message = GetSpendingCheckMessage(budgetLimit.Category.Name, newPercentageUsed, budgetLimit.IsEssential);
         var encouragement = GetEncouragementMessage(newPercentageUsed);
 
         return new SpendingCheckDto
         {
-            IsAllowed = true, // We always allow but provide guidance
+            IsAllowed = true,
             Message = message,
             AlertLevel = alertLevel,
             RemainingBudget = remainingBudget,
@@ -284,23 +336,130 @@ public class BudgetService
             .ToListAsync();
     }
 
-    private async Task<FinancialPeriod> GetCurrentFinancialPeriodAsync()
+    public async Task<List<BudgetLimitDto>> GetBudgetLimitsAsync()
     {
-        return await _context.FinancialPeriods
-            .FirstAsync(fp => fp.IsActive);
+        var currentPeriod = await GetCurrentFinancialPeriodAsync();
+
+        var limits = await _context.BudgetLimits
+            .Include(bl => bl.Category)
+            .Where(bl => bl.FinancialPeriodId == currentPeriod.Id)
+            .OrderByDescending(bl => bl.IsEssential)
+            .ThenBy(bl => bl.Category.Name)
+            .ToListAsync();
+
+        return limits.Select(bl => new BudgetLimitDto
+        {
+            CategoryId = bl.CategoryId,
+            CategoryName = bl.Category.Name,
+            MonthlyLimit = bl.MonthlyLimit,
+            IsEssential = bl.IsEssential,
+            IsCustom = !bl.Category.IsSystem,
+            Icon = bl.Category.Icon
+        }).ToList();
     }
 
-    private string GetCategoryDisplayName(ExpenseCategory category)
+    public async Task<List<SpendingCategoryDto>> GetSpendingCategoriesAsync()
     {
-        return category switch
+        var categories = await _context.SpendingCategories
+            .OrderBy(c => c.IsSystem ? 0 : 1)
+            .ThenBy(c => c.Name)
+            .ToListAsync();
+
+        return categories.Select(c => new SpendingCategoryDto
         {
-            ExpenseCategory.FoodAndDrinks => "Food & Drinks",
-            ExpenseCategory.HealthAndFitness => "Health & Fitness",
-            _ => category.ToString()
+            Id = c.Id,
+            Name = c.Name,
+            Icon = c.Icon,
+            IsCustom = !c.IsSystem,
+            IsEssentialDefault = c.IsEssentialDefault
+        }).ToList();
+    }
+
+    public async Task<CategoryBudgetDto> CreateCustomCategoryAsync(string name, decimal monthlyLimit, bool isEssential)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Category name is required", nameof(name));
+        }
+
+        var sanitizedName = name.Trim();
+
+        if (await _context.SpendingCategories.AnyAsync(c => c.Name == sanitizedName))
+        {
+            throw new InvalidOperationException($"A category named '{sanitizedName}' already exists.");
+        }
+
+        var category = new SpendingCategory
+        {
+            Name = sanitizedName,
+            Icon = "category",
+            IsSystem = false,
+            IsEssentialDefault = isEssential
+        };
+
+        _context.SpendingCategories.Add(category);
+        await _context.SaveChangesAsync();
+
+        var currentPeriod = await GetCurrentFinancialPeriodAsync();
+
+        var budgetLimit = new BudgetLimit
+        {
+            CategoryId = category.Id,
+            FinancialPeriodId = currentPeriod.Id,
+            MonthlyLimit = monthlyLimit,
+            IsEssential = isEssential
+        };
+
+        _context.BudgetLimits.Add(budgetLimit);
+        await _context.SaveChangesAsync();
+
+        return new CategoryBudgetDto
+        {
+            CategoryId = category.Id,
+            CategoryName = category.Name,
+            Limit = budgetLimit.MonthlyLimit,
+            Spent = 0,
+            Remaining = budgetLimit.MonthlyLimit,
+            PercentageUsed = 0,
+            IsEssential = isEssential,
+            Status = GetCategoryStatus(0),
+            StatusColor = GetStatusColor(0),
+            IsCustom = true,
+            Icon = category.Icon,
+            DailyRecommendation = 0
         };
     }
 
-    private string GetCategoryStatus(decimal percentageUsed)
+    public async Task UpdateCategoryLimitAsync(int categoryId, decimal newLimit, bool? isEssential = null, string? name = null)
+    {
+        var currentPeriod = await GetCurrentFinancialPeriodAsync();
+
+        var budgetLimit = await _context.BudgetLimits
+            .Include(bl => bl.Category)
+            .FirstOrDefaultAsync(bl => bl.CategoryId == categoryId && bl.FinancialPeriodId == currentPeriod.Id);
+
+        if (budgetLimit == null)
+        {
+            throw new InvalidOperationException($"No budget limit found for category id {categoryId} in the current period.");
+        }
+
+        budgetLimit.MonthlyLimit = newLimit;
+
+        if (isEssential.HasValue)
+        {
+            budgetLimit.IsEssential = isEssential.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(name) && !budgetLimit.Category.IsSystem)
+        {
+            budgetLimit.Category.Name = name.Trim();
+            budgetLimit.Category.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private static string GetCategoryStatus(decimal percentageUsed)
     {
         return percentageUsed switch
         {
@@ -311,7 +470,7 @@ public class BudgetService
         };
     }
 
-    private string GetStatusColor(decimal percentageUsed)
+    private static string GetStatusColor(decimal percentageUsed)
     {
         return percentageUsed switch
         {
@@ -322,7 +481,7 @@ public class BudgetService
         };
     }
 
-    private AlertType? GetAlertLevel(decimal percentageUsed)
+    private static AlertType? GetAlertLevel(decimal percentageUsed)
     {
         return percentageUsed switch
         {
@@ -334,21 +493,21 @@ public class BudgetService
         };
     }
 
-    private string GetSpendingCheckMessage(ExpenseCategory category, decimal percentageUsed, bool isEssential)
+    private static string GetSpendingCheckMessage(string categoryName, decimal percentageUsed, bool isEssential)
     {
-        var categoryName = GetCategoryDisplayName(category);
-        
         return percentageUsed switch
         {
             < 50 => $"You're doing great with {categoryName}! Still plenty of room in your budget.",
             < 75 => $"You're on track with {categoryName} spending. You've used {percentageUsed:F0}% of your budget.",
             < 90 => $"Heads up! You're at {percentageUsed:F0}% of your {categoryName} budget. Still manageable!",
             < 100 => $"You're approaching your {categoryName} limit at {percentageUsed:F0}%. Consider if this expense is necessary.",
-            _ => $"This would put you over your {categoryName} budget. You've got this - maybe save this for next month?"
+            _ => isEssential
+                ? $"This would push essential spending for {categoryName} above the plan. Is there a way to soften this expense?"
+                : $"This would put you over your {categoryName} budget. You've got this - maybe save this for next month?"
         };
     }
 
-    private string GetEncouragementMessage(decimal percentageUsed)
+    private static string GetEncouragementMessage(decimal percentageUsed)
     {
         return percentageUsed switch
         {
@@ -359,7 +518,7 @@ public class BudgetService
         };
     }
 
-    private string GetSavingsMotivationalMessage(decimal progress, string goalName)
+    private static string GetSavingsMotivationalMessage(decimal progress, string goalName)
     {
         return progress switch
         {
@@ -384,20 +543,18 @@ public class BudgetService
                 _ => "💡 February is coming - your financial freedom is just around the corner!"
             };
         }
-        else
+
+        return savingsRate switch
         {
-            return savingsRate switch
-            {
-                >= 30 => "🚀 Exceptional! You're a savings superstar with 30%+ savings rate!",
-                >= 24 => "🎉 Perfect! You've hit your 24% savings target - you're building serious wealth!",
-                >= 20 => "💪 Excellent! 20%+ savings rate means you're on track for financial independence!",
-                >= 15 => "👍 Good work! You're building a solid financial foundation!",
-                _ => "🌱 Every month gets you closer to your financial goals!"
-            };
-        }
+            >= 30 => "🚀 Exceptional! You're a savings superstar with 30%+ savings rate!",
+            >= 24 => "🎉 Perfect! You've hit your 24% savings target - you're building serious wealth!",
+            >= 20 => "💪 Excellent! 20%+ savings rate means you're on track for financial independence!",
+            >= 15 => "👍 Good work! You're building a solid financial foundation!",
+            _ => "🌱 Every month gets you closer to your financial goals!"
+        };
     }
 
-    private string GetFinancialHealthGrade(decimal savingsRate)
+    private static string GetFinancialHealthGrade(decimal savingsRate)
     {
         return savingsRate switch
         {
@@ -408,28 +565,28 @@ public class BudgetService
         };
     }
 
-    private decimal CalculateFinancialHealthScore(decimal savingsRate)
+    private static decimal CalculateFinancialHealthScore(decimal savingsRate)
     {
-        return Math.Min(100, Math.Max(0, savingsRate * 4)); // Scale savings rate to 0-100
+        return Math.Min(100, Math.Max(0, savingsRate * 4));
     }
 
-    private List<string> GetAchievements(decimal savingsRate)
+    private static List<string> GetAchievements(decimal savingsRate)
     {
         var achievements = new List<string>();
-        
+
         if (savingsRate >= 30) achievements.Add("🚀 Savings Superstar (30%+)");
         if (savingsRate >= 25) achievements.Add("🎯 Excellent Saver (25%+)");
         if (savingsRate >= 20) achievements.Add("💪 Strong Saver (20%+)");
         if (savingsRate >= 15) achievements.Add("👍 Good Financial Health (15%+)");
         if (savingsRate >= 10) achievements.Add("🌱 Building Wealth (10%+)");
-        
+
         return achievements;
     }
 
-    private List<string> GetRecommendations(decimal savingsRate)
+    private static List<string> GetRecommendations(decimal savingsRate)
     {
         var recommendations = new List<string>();
-        
+
         if (savingsRate < 15)
         {
             recommendations.Add("Focus on increasing your savings rate to 15%+");
@@ -450,52 +607,33 @@ public class BudgetService
             recommendations.Add("Outstanding! You're achieving financial independence");
             recommendations.Add("Consider diversifying your investment strategy");
         }
-        
+
         return recommendations;
     }
 
-    private string GetHealthMessage(string grade, decimal savingsRate)
+    private static string GetHealthMessage(string grade, decimal savingsRate)
     {
         return grade switch
         {
             "Excellent" => $"Outstanding financial health! Your {savingsRate:F1}% savings rate is building serious wealth.",
             "Good" => $"Strong financial position! Your {savingsRate:F1}% savings rate is impressive.",
             "Fair" => $"Good progress! Your {savingsRate:F1}% savings rate shows you're building wealth.",
-            _ => $"You're on the right track! Every step towards financial health counts."
+            _ => "You're on the right track! Every step towards financial health counts."
         };
     }
 
-    public async Task<List<BudgetLimitDto>> GetBudgetLimitsAsync()
+    private async Task<FinancialPeriod> GetCurrentFinancialPeriodAsync()
     {
-        var currentPeriod = await GetCurrentFinancialPeriodAsync();
-        
-        var limits = await _context.BudgetLimits
-            .Where(bl => bl.FinancialPeriodId == currentPeriod.Id)
-            .Select(bl => new BudgetLimitDto
-            {
-                Category = bl.Category,
-                CategoryName = GetCategoryDisplayName(bl.Category),
-                MonthlyLimit = bl.MonthlyLimit,
-                IsEssential = bl.IsEssential
-            })
-            .ToListAsync();
-
-        return limits;
-    }
-
-    public async Task UpdateCategoryLimitAsync(ExpenseCategory category, decimal newLimit)
-    {
-        var currentPeriod = await GetCurrentFinancialPeriodAsync();
-        
-        var budgetLimit = await _context.BudgetLimits
-            .FirstOrDefaultAsync(bl => bl.Category == category && bl.FinancialPeriodId == currentPeriod.Id);
-
-        if (budgetLimit == null)
+        var active = await _context.FinancialPeriods.FirstOrDefaultAsync(fp => fp.IsActive);
+        if (active != null)
         {
-            throw new InvalidOperationException($"No budget limit found for category {category}");
+            return active;
         }
 
-        budgetLimit.MonthlyLimit = newLimit;
-        await _context.SaveChangesAsync();
+        return await _context.FinancialPeriods
+            .OrderByDescending(fp => fp.StartDate)
+            .FirstAsync();
     }
+
+    private record DefaultCategoryConfig(string Name, string Icon, bool IsEssential, decimal DoubleHousingLimit, decimal NewHomeLimit);
 }

@@ -69,8 +69,8 @@
             <h3>Top Category</h3>
           </div>
           <div class="top-category" *ngIf="categorySummary.length > 0">
-            <mat-icon>{{getCategoryIcon(categorySummary[0].category)}}</mat-icon>
-            <span>{{getCategoryLabel(categorySummary[0].category)}}</span>
+            <mat-icon>{{ getCategoryIconById(categorySummary[0].categoryId) }}</mat-icon>
+            <span>{{ categorySummary[0].categoryName }}</span>
             <div class="category-amount">${{categorySummary[0].totalAmount | number:'1.2-2'}}</div>
           </div>
         </mat-card-content>
@@ -105,10 +105,10 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="category-field">
               <mat-label>Category</mat-label>
-              <mat-select formControlName="category">
-                <mat-option *ngFor="let category of categories" [value]="category">
-                  <mat-icon>{{getCategoryIcon(category)}}</mat-icon>
-                  {{getCategoryLabel(category)}}
+              <mat-select formControlName="categoryId">
+                <mat-option *ngFor="let category of categoryOptions" [value]="category.id">
+                  <mat-icon>{{ category.icon || 'category' }}</mat-icon>
+                  {{ category.name }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -161,7 +161,7 @@
                   <p class="guidance-message">{{ spendingCheck.message }}</p>
                   <p class="encouragement">{{ spendingCheck.encouragement }}</p>
                   
-                  <div class="budget-details" *ngIf="getCategoryBudgetInfo(expenseForm.get('category')?.value) as categoryBudget">
+                  <div class="budget-details" *ngIf="getCategoryBudgetInfo(expenseForm.get('categoryId')?.value) as categoryBudget">
                     <div class="budget-summary">
                       <div class="budget-row">
                         <span>Category Budget:</span>
@@ -194,7 +194,7 @@
                       </mat-progress-bar>
                     </div>
 
-                    <div class="daily-guidance" *ngIf="categoryBudget.dailyRecommendation > 0">
+                    <div class="daily-guidance" *ngIf="categoryBudget.dailyRecommendation && categoryBudget.dailyRecommendation > 0">
                       <mat-icon>schedule</mat-icon>
                       <span>Recommended daily spending: {{ formatCurrency(categoryBudget.dailyRecommendation) }}</span>
                     </div>
@@ -205,12 +205,12 @@
           </div>
 
           <!-- Current Category Budget Overview -->
-          <div class="current-category-budget" *ngIf="expenseForm.get('category')?.value !== null && getCategoryBudgetInfo(expenseForm.get('category')?.value) as categoryBudget">
+          <div class="current-category-budget" *ngIf="expenseForm.get('categoryId')?.value !== null && getCategoryBudgetInfo(expenseForm.get('categoryId')?.value) as categoryBudget">
             <mat-card class="category-overview">
               <mat-card-content>
                 <div class="category-header">
-                  <mat-icon>{{ getCategoryIcon(expenseForm.get('category')?.value) }}</mat-icon>
-                  <h4>{{ getCategoryLabel(expenseForm.get('category')?.value) }} Budget</h4>
+                  <mat-icon>{{ getCategoryIconById(expenseForm.get('categoryId')?.value) }}</mat-icon>
+                  <h4>{{ getCategoryNameById(expenseForm.get('categoryId')?.value) }} Budget</h4>
                   <span class="status-badge" [class]="'status-' + categoryBudget.statusColor">
                     {{ categoryBudget.status }}
                   </span>
@@ -270,9 +270,20 @@
             <mat-label>Category</mat-label>
             <mat-select [(value)]="filterCategory">
               <mat-option value="all">All Categories</mat-option>
-              <mat-option *ngFor="let category of categories" [value]="category">
-                <mat-icon>{{getCategoryIcon(category)}}</mat-icon>
-                {{getCategoryLabel(category)}}
+              <mat-option *ngFor="let category of categoryOptions" [value]="category.id">
+                <mat-icon>{{ category.icon || 'category' }}</mat-icon>
+                {{ category.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Payment Method</mat-label>
+            <mat-select [(value)]="filterPaymentMethod">
+              <mat-option value="all">All Payment Methods</mat-option>
+              <mat-option *ngFor="let method of paymentMethods" [value]="method">
+                <mat-icon>{{ getPaymentMethodIcon(method) }}</mat-icon>
+                {{ formatPaymentMethod(method) }}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -309,9 +320,33 @@
         <div class="category-list">
           <div class="category-item" *ngFor="let item of categorySummary">
             <div class="category-info">
-              <mat-icon class="category-icon">{{getCategoryIcon(item.category)}}</mat-icon>
+              <mat-icon class="category-icon">{{ getCategoryIconById(item.categoryId) }}</mat-icon>
               <div class="category-details">
                 <span class="category-name">{{item.categoryName}}</span>
+                <span class="transaction-count">{{item.transactionCount}} transactions</span>
+              </div>
+            </div>
+            <div class="category-amount">
+              <span class="amount">${{item.totalAmount | number:'1.2-2'}}</span>
+              <span class="percentage">{{item.percentage | number:'1.1-1'}}%</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="category-summary-card payment-method-summary-card mat-elevation-z4" *ngIf="paymentMethodSummary.length > 0">
+      <mat-card-header>
+        <mat-card-title>Payment Method Breakdown</mat-card-title>
+        <mat-card-subtitle>Spending by payment method this month</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="category-list">
+          <div class="category-item" *ngFor="let item of paymentMethodSummary">
+            <div class="category-info">
+              <mat-icon class="category-icon">{{ getPaymentMethodIcon(item.paymentMethod) }}</mat-icon>
+              <div class="category-details">
+                <span class="category-name">{{ formatPaymentMethod(item.paymentMethod) }}</span>
                 <span class="transaction-count">{{item.transactionCount}} transactions</span>
               </div>
             </div>
@@ -334,12 +369,12 @@
         <div class="expense-list" *ngIf="getFilteredExpenses().length > 0; else noExpenses">
           <div class="expense-item" *ngFor="let expense of getFilteredExpenses()">
             <div class="expense-icon">
-              <mat-icon>{{getCategoryIcon(expense.category)}}</mat-icon>
+              <mat-icon>{{ getCategoryIconById(expense.categoryId) }}</mat-icon>
             </div>
             <div class="expense-details">
               <div class="expense-description">{{expense.description}}</div>
               <div class="expense-meta">
-                <span class="category">{{getCategoryLabel(expense.category)}}</span>
+                <span class="category">{{ expense.category?.name || getCategoryNameById(expense.categoryId) }}</span>
                 <span class="date">{{expense.date | date:'MMM d, y'}}</span>
                 <span class="payment-method" *ngIf="expense.paymentMethod">{{expense.paymentMethod}}</span>
                 <span class="location" *ngIf="expense.location">📍 {{expense.location}}</span>

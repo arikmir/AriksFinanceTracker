@@ -84,6 +84,12 @@
         <div class="section-header">
           <h3>Category Budgets</h3>
           <span class="days-left">{{ budgetStatus.daysLeftInMonth }} days left</span>
+          <span class="section-actions">
+            <button mat-stroked-button color="primary" (click)="openCreateCategoryDialog()">
+              <mat-icon>add</mat-icon>
+              Add Category
+            </button>
+          </span>
         </div>
 
         <div class="categories-grid">
@@ -94,7 +100,7 @@
             <mat-card-content>
               <div class="category-header">
                 <div class="category-info">
-                  <mat-icon>{{ getCategoryIcon(category.categoryName) }}</mat-icon>
+                  <mat-icon>{{ category.icon || getCategoryIcon(category.categoryName) }}</mat-icon>
                   <span class="category-name">{{ category.categoryName }}</span>
                   <mat-chip *ngIf="category.isEssential" class="essential-chip">Essential</mat-chip>
                 </div>
@@ -160,6 +166,34 @@
     <p>Loading your budget...</p>
   </div>
 </div>
+
+<!-- Budget Edit Dialog Template -->
+<ng-template #categoryCreateDialog>
+  <h2 mat-dialog-title>Add Budget Category</h2>
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Category Name</mat-label>
+      <input matInput [(ngModel)]="newCategoryName" placeholder="e.g. Subscriptions">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Monthly Limit</mat-label>
+      <input matInput type="number" min="0" step="10" [(ngModel)]="newCategoryLimit">
+      <span matPrefix>$</span>
+    </mat-form-field>
+
+    <mat-checkbox [(ngModel)]="newCategoryIsEssential">
+      Treat this as an essential expense
+    </mat-checkbox>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close [disabled]="isSavingNewCategory">Cancel</button>
+    <button mat-raised-button color="primary" (click)="saveNewCategory()" [disabled]="isSavingNewCategory">
+      <mat-icon>{{ isSavingNewCategory ? 'hourglass_top' : 'save' }}</mat-icon>
+      {{ isSavingNewCategory ? 'Saving...' : 'Create Category' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
 
 <!-- Budget Edit Dialog Template -->
 <ng-template #budgetEditDialog>
