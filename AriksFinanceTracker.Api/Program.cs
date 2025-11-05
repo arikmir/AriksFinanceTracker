@@ -16,6 +16,8 @@ builder.Services.AddDbContext<FinanceContext>(options =>
 
 // Add Services
 builder.Services.AddScoped<AriksFinanceTracker.Api.Services.BudgetService>();
+builder.Services.AddScoped<AriksFinanceTracker.Api.Services.ExpenseService>();
+builder.Services.AddScoped<AriksFinanceTracker.Api.Services.IncomeService>();
 builder.Services.AddScoped<AriksFinanceTracker.Api.Services.IDatabaseBackupService, AriksFinanceTracker.Api.Services.DatabaseBackupService>();
 builder.Services.AddHostedService<AriksFinanceTracker.Api.Services.AutoBackupService>();
 

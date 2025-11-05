@@ -1,6 +1,7 @@
 using AriksFinanceTracker.Api.Data;
 using AriksFinanceTracker.Api.Models.Dto;
 using AriksFinanceTracker.Api.Models.Entities;
+using AriksFinanceTracker.Api.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AriksFinanceTracker.Api.Services;
@@ -124,11 +125,11 @@ public class ExpenseService
         var totalAmount = expenses.Sum(e => e.Amount);
 
         var categorySummary = expenses
-            .GroupBy(e => e.Category)
+            .GroupBy(e => e.CategoryId)
             .Select(g => new CategorySummaryDto
             {
-                Category = g.Key,
-                CategoryName = g.Key.ToString(),
+                CategoryId = g.Key,
+                CategoryName = g.First().Category?.Name ?? "Unknown",
                 TotalAmount = g.Sum(e => e.Amount),
                 TransactionCount = g.Count(),
                 Percentage = totalAmount > 0 ? (g.Sum(e => e.Amount) / totalAmount) * 100 : 0
@@ -162,8 +163,16 @@ public class ExpenseService
             StartDate = startDate,
             EndDate = endDate,
             CategoryBreakdown = expenses
-                .GroupBy(e => e.Category)
-                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount))
+                .GroupBy(e => e.CategoryId)
+                .Select(g => new CategoryBreakdownDto
+                {
+                    CategoryId = g.Key,
+                    CategoryName = g.First().Category?.Name ?? "Unknown",
+                    TotalAmount = g.Sum(e => e.Amount),
+                    TransactionCount = g.Count()
+                })
+                .OrderByDescending(cb => cb.TotalAmount)
+                .ToList()
         };
 
         return analytics;
@@ -243,5 +252,67 @@ public class ExpenseService
     private async Task<bool> ExpenseExistsAsync(int id)
     {
         return await _context.Expenses.AnyAsync(e => e.Id == id);
+    }
+
+    public async Task<IEnumerable<PaymentMethodSummaryDto>> GetPaymentMethodSummaryAsync(int? month = null, int? year = null)
+    {
+        var (start, end) = CalculateMonthlyDateRange(month, year);
+
+        var expenses = await _context.Expenses
+            .Where(e => e.Date >= start && e.Date < end.AddSeconds(1))
+            .ToListAsync();
+
+        var totalAmount = expenses.Sum(e => e.Amount);
+
+        var paymentSummary = expenses
+            .GroupBy(e => string.IsNullOrWhiteSpace(e.PaymentMethod) ? "Unspecified" : e.PaymentMethod!.Trim())
+            .Select(g =>
+            {
+                var groupTotal = g.Sum(e => e.Amount);
+                return new PaymentMethodSummaryDto
+                {
+                    PaymentMethod = g.Key,
+                    TotalAmount = groupTotal,
+                    TransactionCount = g.Count(),
+                    Percentage = totalAmount > 0 ? (groupTotal / totalAmount) * 100 : 0
+                };
+            })
+            .OrderByDescending(p => p.TotalAmount)
+            .ToList();
+
+        return paymentSummary;
+    }
+
+    public async Task<IEnumerable<Expense>> GetExpensesWithCategoryAsync(int? month = null, int? year = null)
+    {
+        var query = _context.Expenses
+            .Include(e => e.Category)
+            .AsQueryable();
+
+        if (month.HasValue && year.HasValue)
+        {
+            var startDate = new DateTime(year.Value, month.Value, 1);
+            var endDate = startDate.AddMonths(1);
+            query = query.Where(e => e.Date >= startDate && e.Date < endDate);
+        }
+
+        return await query.OrderByDescending(e => e.Date).ToListAsync();
+    }
+
+    public async Task<Expense?> GetExpenseWithCategoryAsync(int id)
+    {
+        return await _context.Expenses
+            .Include(e => e.Category)
+            .FirstOrDefaultAsync(e => e.Id == id);
+    }
+
+    public async Task<Expense> CreateExpenseWithCategoryAsync(Expense expense)
+    {
+        expense.CreatedAt = DateTime.UtcNow;
+        expense.Category = null!;
+        _context.Expenses.Add(expense);
+        await _context.SaveChangesAsync();
+        await _context.Entry(expense).Reference(e => e.Category).LoadAsync();
+        return expense;
     }
 }

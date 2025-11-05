@@ -32,19 +32,19 @@ public class IncomeService
         return await _context.Incomes.FindAsync(id);
     }
 
-    public async Task<(bool isValid, string? errorMessage)> ValidateIncomeAsync(Income income)
+    public Task<(bool isValid, string? errorMessage)> ValidateIncomeAsync(Income income)
     {
         if (income.Amount <= 0)
         {
-            return (false, "Income amount must be greater than zero");
+            return Task.FromResult((false, "Income amount must be greater than zero"));
         }
 
         if (string.IsNullOrWhiteSpace(income.Source))
         {
-            return (false, "Income source is required");
+            return Task.FromResult((false, "Income source is required"));
         }
 
-        return (true, null);
+        return Task.FromResult((true, (string?)null));
     }
 
     public async Task<Income> CreateIncomeAsync(Income income)
