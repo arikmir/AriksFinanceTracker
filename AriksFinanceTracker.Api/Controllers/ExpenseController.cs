@@ -1,36 +1,32 @@
+using AriksFinanceTracker.Api.Models.Dto;
+using AriksFinanceTracker.Api.Models.Entities;
+using AriksFinanceTracker.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+namespace AriksFinanceTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class ExpenseController : ControllerBase
 {
-    private readonly FinanceContext _context;
+    private readonly ExpenseService _expenseService;
 
-    public ExpenseController(FinanceContext context)
+    public ExpenseController(ExpenseService expenseService)
     {
-        _context = context;
+        _expenseService = expenseService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Expense>>> GetExpenses([FromQuery] int? month, [FromQuery] int? year)
     {
-        var query = _context.Expenses.AsQueryable();
-        
-        if (month.HasValue && year.HasValue)
-        {
-            var startDate = new DateTime(year.Value, month.Value, 1);
-            var endDate = startDate.AddMonths(1);
-            query = query.Where(e => e.Date >= startDate && e.Date < endDate);
-        }
-        
-        return await query.OrderByDescending(e => e.Date).ToListAsync();
+        var expenses = await _expenseService.GetExpensesAsync(month, year);
+        return Ok(expenses);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Expense>> GetExpense(int id)
     {
-        var expense = await _context.Expenses.FindAsync(id);
+        var expense = await _expenseService.GetExpenseByIdAsync(id);
         if (expense == null) return NotFound();
         return expense;
     }
@@ -39,225 +35,61 @@ public class ExpenseController : ControllerBase
     public async Task<ActionResult<Expense>> CreateExpense(Expense expense)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        
-        expense.CreatedAt = DateTime.UtcNow;
-        _context.Expenses.Add(expense);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetExpense), new { id = expense.Id }, expense);
+
+        var createdExpense = await _expenseService.CreateExpenseAsync(expense);
+        return CreatedAtAction(nameof(GetExpense), new { id = createdExpense.Id }, createdExpense);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateExpense(int id, Expense expense)
     {
-        if (id != expense.Id) return BadRequest();
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        _context.Entry(expense).State = EntityState.Modified;
-        
         try
         {
-            await _context.SaveChangesAsync();
+            var updated = await _expenseService.UpdateExpenseAsync(id, expense);
+            if (!updated) return BadRequest("Expense ID mismatch or not found");
+            return NoContent();
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception)
         {
-            if (!ExpenseExists(id)) return NotFound();
             throw;
         }
-
-        return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteExpense(int id)
     {
-        var expense = await _context.Expenses.FindAsync(id);
-        if (expense == null) return NotFound();
-        
-        _context.Expenses.Remove(expense);
-        await _context.SaveChangesAsync();
+        var deleted = await _expenseService.DeleteExpenseAsync(id);
+        if (!deleted) return NotFound();
         return NoContent();
     }
 
     [HttpGet("analytics/daily")]
     public async Task<ActionResult<IEnumerable<DailyExpenseDto>>> GetDailyAnalytics([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
-        var start = startDate ?? DateTime.Today.AddDays(-30);
-        var end = endDate ?? DateTime.Today;
-        
-        var dailyExpenses = await _context.Expenses
-            .Where(e => e.Date >= start && e.Date <= end)
-            .GroupBy(e => e.Date.Date)
-            .Select(g => new DailyExpenseDto
-            {
-                Date = g.Key,
-                TotalAmount = g.Sum(e => e.Amount),
-                TransactionCount = g.Count(),
-                Expenses = g.ToList()
-            })
-            .OrderBy(d => d.Date)
-            .ToListAsync();
-            
+        var dailyExpenses = await _expenseService.GetDailyAnalyticsAsync(startDate, endDate);
         return Ok(dailyExpenses);
     }
 
     [HttpGet("analytics/weekly")]
     public async Task<ActionResult<ExpenseAnalyticsDto>> GetWeeklyAnalytics([FromQuery] int? month, [FromQuery] int? year)
     {
-        DateTime startDate, endDate;
-        
-        if (month.HasValue && year.HasValue)
-        {
-            // Get the specific week within the provided month
-            var firstDayOfMonth = new DateTime(year.Value, month.Value, 1);
-            var today = DateTime.Today;
-            
-            // If looking at current month, use current date as reference
-            if (firstDayOfMonth.Month == today.Month && firstDayOfMonth.Year == today.Year)
-            {
-                // For current month, get the current week (Sunday to today)
-                endDate = today.AddDays(1).AddSeconds(-1); // End of today
-                var daysFromSunday = (int)today.DayOfWeek;
-                startDate = today.AddDays(-daysFromSunday); // Start from Sunday
-            }
-            else
-            {
-                // For past months, get the last full week of that month
-                var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
-                endDate = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day
-                var daysFromSunday = (int)lastDayOfMonth.DayOfWeek;
-                startDate = lastDayOfMonth.AddDays(-daysFromSunday); // Start from Sunday
-            }
-        }
-        else
-        {
-            // Default behavior: current week (Sunday to today)
-            var today = DateTime.Today;
-            endDate = today.AddDays(1).AddSeconds(-1); // End of today
-            var daysFromSunday = (int)today.DayOfWeek;
-            startDate = today.AddDays(-daysFromSunday); // Start from Sunday
-        }
-        
-        return await GetAnalytics(startDate, endDate);
+        var analytics = await _expenseService.GetWeeklyAnalyticsAsync(month, year);
+        return Ok(analytics);
     }
 
     [HttpGet("analytics/monthly")]
     public async Task<ActionResult<ExpenseAnalyticsDto>> GetMonthlyAnalytics([FromQuery] int? month, [FromQuery] int? year)
     {
-        DateTime startDate, endDate;
-        
-        if (month.HasValue && year.HasValue)
-        {
-            // Get the entire month
-            startDate = new DateTime(year.Value, month.Value, 1);
-            var lastDayOfMonth = startDate.AddMonths(1).AddDays(-1);
-            
-            // If it's the current month, only include up to today (inclusive)
-            var today = DateTime.Today;
-            if (startDate <= today && lastDayOfMonth >= today)
-            {
-                endDate = today.AddDays(1).AddSeconds(-1); // End of today
-            }
-            else
-            {
-                endDate = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day of month
-            }
-        }
-        else
-        {
-            // Default behavior: current month from start to today
-            var today = DateTime.Today;
-            startDate = new DateTime(today.Year, today.Month, 1);
-            endDate = today.AddDays(1).AddSeconds(-1); // End of today
-        }
-        
-        return await GetAnalytics(startDate, endDate);
+        var analytics = await _expenseService.GetMonthlyAnalyticsAsync(month, year);
+        return Ok(analytics);
     }
 
     [HttpGet("categories/summary")]
     public async Task<ActionResult<IEnumerable<CategorySummaryDto>>> GetCategorySummary([FromQuery] int? month, [FromQuery] int? year)
     {
-        DateTime start, end;
-        
-        if (month.HasValue && year.HasValue)
-        {
-            // Get the entire month
-            start = new DateTime(year.Value, month.Value, 1);
-            var lastDayOfMonth = start.AddMonths(1).AddDays(-1);
-            
-            // If it's the current month, only include up to today (inclusive)
-            var today = DateTime.Today;
-            if (start <= today && lastDayOfMonth >= today)
-            {
-                end = today.AddDays(1).AddSeconds(-1); // End of today
-            }
-            else
-            {
-                end = lastDayOfMonth.AddDays(1).AddSeconds(-1); // End of last day of month
-            }
-        }
-        else
-        {
-            // Default behavior: current month from start to today
-            var today = DateTime.Today;
-            start = new DateTime(today.Year, today.Month, 1);
-            end = today.AddDays(1).AddSeconds(-1); // End of today
-        }
-        
-        // Get all expenses and calculate on client side for SQLite compatibility
-        var expenses = await _context.Expenses
-            .Where(e => e.Date >= start && e.Date < end.AddSeconds(1))
-            .ToListAsync();
-            
-        var totalAmount = expenses.Sum(e => e.Amount);
-            
-        var categorySummary = expenses
-            .GroupBy(e => e.Category)
-            .Select(g => new CategorySummaryDto
-            {
-                Category = g.Key,
-                CategoryName = g.Key.ToString(),
-                TotalAmount = g.Sum(e => e.Amount),
-                TransactionCount = g.Count(),
-                Percentage = totalAmount > 0 ? (g.Sum(e => e.Amount) / totalAmount) * 100 : 0
-            })
-            .OrderByDescending(c => c.TotalAmount)
-            .ToList();
-            
+        var categorySummary = await _expenseService.GetCategorySummaryAsync(month, year);
         return Ok(categorySummary);
-    }
-
-    private async Task<ActionResult<ExpenseAnalyticsDto>> GetAnalytics(DateTime startDate, DateTime endDate)
-    {
-        var expenses = await _context.Expenses
-            .Where(e => e.Date >= startDate && e.Date < endDate.AddSeconds(1))
-            .ToListAsync();
-            
-        if (!expenses.Any())
-        {
-            return Ok(new ExpenseAnalyticsDto
-            {
-                StartDate = startDate,
-                EndDate = endDate
-            });
-        }
-        
-        var analytics = new ExpenseAnalyticsDto
-        {
-            TotalAmount = expenses.Sum(e => e.Amount),
-            TransactionCount = expenses.Count,
-            AverageAmount = expenses.Average(e => e.Amount),
-            StartDate = startDate,
-            EndDate = endDate,
-            CategoryBreakdown = expenses
-                .GroupBy(e => e.Category)
-                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount))
-        };
-        
-        return Ok(analytics);
-    }
-
-    private bool ExpenseExists(int id)
-    {
-        return _context.Expenses.Any(e => e.Id == id);
     }
 }

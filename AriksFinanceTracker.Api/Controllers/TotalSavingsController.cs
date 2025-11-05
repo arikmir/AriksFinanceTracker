@@ -1,3 +1,5 @@
+using AriksFinanceTracker.Api.Data;
+using AriksFinanceTracker.Api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

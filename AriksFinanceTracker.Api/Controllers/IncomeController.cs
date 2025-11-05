@@ -1,27 +1,31 @@
+using AriksFinanceTracker.Api.Models.Entities;
+using AriksFinanceTracker.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+namespace AriksFinanceTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class IncomeController : ControllerBase
 {
-    private readonly FinanceContext _context;
+    private readonly IncomeService _incomeService;
 
-    public IncomeController(FinanceContext context)
+    public IncomeController(IncomeService incomeService)
     {
-        _context = context;
+        _incomeService = incomeService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Income>>> GetIncomes()
+    public async Task<ActionResult<IEnumerable<Income>>> GetIncomes([FromQuery] int? month, [FromQuery] int? year)
     {
-        return await _context.Incomes.OrderByDescending(i => i.Date).ToListAsync();
+        var incomes = await _incomeService.GetIncomesAsync(month, year);
+        return Ok(incomes);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Income>> GetIncome(int id)
     {
-        var income = await _context.Incomes.FindAsync(id);
+        var income = await _incomeService.GetIncomeByIdAsync(id);
         if (income == null) return NotFound();
         return income;
     }
@@ -29,31 +33,27 @@ public class IncomeController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Income>> CreateIncome(Income income)
     {
-        if (!ModelState.IsValid) 
+        if (!ModelState.IsValid)
         {
-            return BadRequest(new { 
-                message = "Invalid income data", 
+            return BadRequest(new
+            {
+                message = "Invalid income data",
                 errors = ModelState.Where(x => x.Value.Errors.Count > 0)
                     .ToDictionary(x => x.Key, x => x.Value.Errors.Select(e => e.ErrorMessage))
             });
         }
-        
+
         // Validate business rules
-        if (income.Amount <= 0)
+        var (isValid, errorMessage) = await _incomeService.ValidateIncomeAsync(income);
+        if (!isValid)
         {
-            return BadRequest(new { message = "Income amount must be greater than zero" });
+            return BadRequest(new { message = errorMessage });
         }
-        
-        if (string.IsNullOrWhiteSpace(income.Source))
-        {
-            return BadRequest(new { message = "Income source is required" });
-        }
-        
+
         try
         {
-            _context.Incomes.Add(income);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetIncome), new { id = income.Id }, income);
+            var createdIncome = await _incomeService.CreateIncomeAsync(income);
+            return CreatedAtAction(nameof(GetIncome), new { id = createdIncome.Id }, createdIncome);
         }
         catch (Exception ex)
         {
@@ -64,76 +64,53 @@ public class IncomeController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateIncome(int id, Income income)
     {
-        if (id != income.Id) 
+        if (!ModelState.IsValid)
         {
-            return BadRequest(new { message = "Income ID mismatch" });
-        }
-        
-        if (!ModelState.IsValid) 
-        {
-            return BadRequest(new { 
-                message = "Invalid income data", 
+            return BadRequest(new
+            {
+                message = "Invalid income data",
                 errors = ModelState.Where(x => x.Value.Errors.Count > 0)
                     .ToDictionary(x => x.Key, x => x.Value.Errors.Select(e => e.ErrorMessage))
             });
         }
-        
+
         // Validate business rules
-        if (income.Amount <= 0)
+        var (isValid, errorMessage) = await _incomeService.ValidateIncomeAsync(income);
+        if (!isValid)
         {
-            return BadRequest(new { message = "Income amount must be greater than zero" });
-        }
-        
-        if (string.IsNullOrWhiteSpace(income.Source))
-        {
-            return BadRequest(new { message = "Income source is required" });
+            return BadRequest(new { message = errorMessage });
         }
 
-        _context.Entry(income).State = EntityState.Modified;
-        
         try
         {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!IncomeExists(id)) 
+            var updated = await _incomeService.UpdateIncomeAsync(id, income);
+            if (!updated)
             {
                 return NotFound(new { message = $"Income with ID {id} not found" });
             }
-            return Conflict(new { message = "Income was modified by another user. Please refresh and try again." });
+            return NoContent();
         }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "An error occurred while updating income", details = ex.Message });
         }
-
-        return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteIncome(int id)
     {
-        var income = await _context.Incomes.FindAsync(id);
-        if (income == null) 
-        {
-            return NotFound(new { message = $"Income with ID {id} not found" });
-        }
-        
         try
         {
-            _context.Incomes.Remove(income);
-            await _context.SaveChangesAsync();
+            var deleted = await _incomeService.DeleteIncomeAsync(id);
+            if (!deleted)
+            {
+                return NotFound(new { message = $"Income with ID {id} not found" });
+            }
             return NoContent();
         }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "An error occurred while deleting income", details = ex.Message });
         }
-    }
-
-    private bool IncomeExists(int id)
-    {
-        return _context.Incomes.Any(i => i.Id == id);
     }
 }

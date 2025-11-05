@@ -1,3 +1,7 @@
+using AriksFinanceTracker.Api.Data;
+using AriksFinanceTracker.Api.Models.Dto;
+using AriksFinanceTracker.Api.Models.Entities;
+using AriksFinanceTracker.Api.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AriksFinanceTracker.Api.Services;
