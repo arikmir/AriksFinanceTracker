@@ -1,3 +1,5 @@
+using AriksFinanceTracker.Api.Data;
+using AriksFinanceTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -14,6 +16,8 @@ builder.Services.AddDbContext<FinanceContext>(options =>
 
 // Add Services
 builder.Services.AddScoped<AriksFinanceTracker.Api.Services.BudgetService>();
+builder.Services.AddScoped<AriksFinanceTracker.Api.Services.ExpenseService>();
+builder.Services.AddScoped<AriksFinanceTracker.Api.Services.IncomeService>();
 builder.Services.AddScoped<AriksFinanceTracker.Api.Services.IDatabaseBackupService, AriksFinanceTracker.Api.Services.DatabaseBackupService>();
 builder.Services.AddHostedService<AriksFinanceTracker.Api.Services.AutoBackupService>();
 
@@ -33,8 +37,8 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<FinanceContext>();
     context.Database.EnsureCreated();
-    
-    var budgetService = scope.ServiceProvider.GetRequiredService<AriksFinanceTracker.Api.Services.BudgetService>();
+
+    var budgetService = scope.ServiceProvider.GetRequiredService<BudgetService>();
     await budgetService.InitializeAriksBudgetAsync();
 }
 
